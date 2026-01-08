@@ -103,9 +103,21 @@ class Combo(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def _generate_unique_slug(self):
+        """Create a unique slug from the title, appending a suffix if needed."""
+        base_slug = slugify(self.title) or 'combo'
+        slug_candidate = base_slug
+        counter = 1
+
+        while type(self).objects.filter(slug=slug_candidate).exclude(pk=self.pk).exists():
+            slug_candidate = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug_candidate
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)
+            self.slug = self._generate_unique_slug()
         super().save(*args, **kwargs)
 
     def original_price(self):
