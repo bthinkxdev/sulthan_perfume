@@ -943,7 +943,9 @@
 
                 <div class="combo-products">
                     {% for item in combo.combo_products.all %}
-                    <span class="combo-product-tag">{{ item.product.name }} • {{ item.variant.ml }}ml</span>
+                    <span class="combo-product-tag" style="font-size:12px; padding:4px 8px; line-height:1.2;">
+                        {{ item.product.name }} • {{ item.variant.ml }}ml
+                    </span>
                     {% endfor %}
                 </div>
 
