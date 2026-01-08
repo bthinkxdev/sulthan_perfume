@@ -1,0 +1,138 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}Combos{% endblock %}
+{% block page_title %}Combo Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Search and Filter Bar -->
+    <div class="search-filter-bar">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Search combos..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="featured" {% if status_filter == 'featured' %}selected{% endif %}>Featured</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'admin_combo_create' %}" class="btn btn-success w-100">
+                    <i class="bi bi-plus-lg"></i> Add Combo
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Combos Grid -->
+    <div class="row">
+        {% for combo in page_obj %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if combo.image %}
+                <img src="{{ combo.image.url }}" class="card-img-top" alt="{{ combo.title }}"
+                     style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                     style="height: 200px;">
+                    <i class="bi bi-collection" style="font-size: 4rem; opacity: 0.3;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ combo.title }}</h5>
+                    <p class="text-muted mb-2">
+                        <i class="bi bi-box"></i> {{ combo.products.count }} products
+                    </p>
+                    <div class="mb-2">
+                        <span class="text-decoration-line-through text-muted">₹{{ combo.original_price }}</span>
+                        <span class="fs-4 fw-bold text-success ms-2">₹{{ combo.discounted_price }}</span>
+                    </div>
+                    <p class="text-success mb-2">
+                        <i class="bi bi-tag"></i> {{ combo.discount_percentage }}% OFF
+                    </p>
+                    <div class="mb-3">
+                        {% if combo.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                        {% if combo.is_featured %}
+                            <span class="badge bg-warning">Featured</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="btn-group w-100">
+                        <a href="{% url 'admin_combo_detail' combo.pk %}" class="btn btn-sm btn-info">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="{% url 'admin_combo_edit' combo.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="{% url 'admin_combo_delete' combo.pk %}" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 5rem; opacity: 0.3;"></i>
+                <p class="mt-3 text-muted">No combos found</p>
+                <a href="{% url 'admin_combo_create' %}" class="btn btn-success">
+                    <i class="bi bi-plus-lg"></i> Create First Combo
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                    Previous
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}">
+                        {{ num }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                    Next
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,680 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ product.name }} - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-detail {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .product-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: start;
+    }
+
+    .product-gallery {
+        position: sticky;
+        top: 100px;
+    }
+
+    .main-image-container {
+        background: var(--card);
+        border-radius: 32px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        padding: 40px;
+        transition: var(--transition-smooth);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .main-image-container:hover {
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--shadow-md);
+    }
+
+    .main-image {
+        width: 100%;
+        height: 500px;
+        object-fit: cover;
+        border-radius: 24px;
+        cursor: zoom-in;
+        transition: var(--transition-smooth);
+    }
+
+    .main-image:hover {
+        transform: scale(1.02);
+    }
+
+    .product-info-section {
+        animation: fadeInRight 0.8s ease-out;
+    }
+
+    .breadcrumb {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 24px;
+        font-size: 14px;
+        color: var(--medium-gray);
+    }
+
+    .breadcrumb a {
+        color: var(--medium-gray);
+        text-decoration: none;
+        transition: var(--transition-smooth);
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary);
+    }
+
+    .origin-badge {
+        display: inline-block;
+        background: rgba(248, 216, 197, 0.9);
+        color: var(--primary);
+        padding: 8px 16px;
+        border-radius: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .product-title {
+        font-family: var(--font-heading);
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 16px;
+        line-height: 1.2;
+    }
+
+    .product-short-desc {
+        font-size: 18px;
+        color: var(--text-muted);
+        margin-bottom: 32px;
+        line-height: 1.6;
+    }
+
+    .price-section {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 32px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .price {
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+
+    .price-label {
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    .variant-section {
+        margin-bottom: 20px;
+    }
+
+    .variant-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .variant-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .variant-btn {
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .variant-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .variant-btn.active {
+        background: rgba(196, 111, 68, 0.1);
+        border-color: var(--primary);
+        color: var(--primary);
+        box-shadow: 0 6px 14px rgba(196, 111, 68, 0.15);
+    }
+
+    .quantity-section {
+        margin-bottom: 32px;
+    }
+
+    .quantity-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: var(--white);
+        border-radius: 16px;
+        padding: 8px;
+        width: fit-content;
+        border: 1px solid var(--border);
+    }
+
+    .qty-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--primary);
+        font-size: 20px;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .qty-btn:hover {
+        background: var(--primary);
+        color: var(--white);
+        border-color: var(--primary);
+        transform: scale(1.1);
+    }
+
+    .qty-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .qty-value {
+        min-width: 60px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .btn-add-cart {
+        flex: 2;
+        padding: 18px 32px;
+        font-size: 16px;
+    }
+
+    .btn-buy-now {
+        flex: 1;
+        padding: 18px 32px;
+        font-size: 16px;
+    }
+
+    .product-details {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 32px;
+        margin-bottom: 32px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .detail-item {
+        display: flex;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: var(--primary);
+        min-width: 150px;
+        font-size: 14px;
+    }
+
+    .detail-value {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .description-section {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 32px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .description-title {
+        font-family: var(--font-heading);
+        font-size: 24px;
+        color: var(--primary);
+        margin-bottom: 16px;
+    }
+
+    .description-text {
+        color: var(--text-muted);
+        line-height: 1.8;
+        font-size: 15px;
+    }
+
+    /* Related Products */
+    .related-section {
+        padding: 80px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .related-title {
+        font-family: var(--font-heading);
+        font-size: 32px;
+        color: var(--primary);
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
+    }
+
+    .related-card {
+        background: var(--card-strong);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: var(--transition-smooth);
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .related-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .related-image {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+    }
+
+    .related-info {
+        padding: 20px;
+    }
+
+    .related-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
+
+    .related-price {
+        font-size: 20px;
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+        .product-container {
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+
+        .product-gallery {
+            position: static;
+        }
+
+        .product-title {
+            font-size: 36px;
+        }
+
+        .main-image {
+            height: 400px;
+        }
+
+        .price {
+            font-size: 36px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-add-cart,
+        .btn-buy-now {
+            flex: 1;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .product-detail {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .product-title {
+            font-size: 28px;
+        }
+
+        .main-image-container {
+            padding: 24px;
+        }
+
+        .main-image {
+            height: 300px;
+        }
+
+        .related-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-item {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detail-label {
+            min-width: auto;
+        }
+    }
+
+    @keyframes fadeInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="product-detail">
+    <div class="product-container">
+        <!-- Product Gallery -->
+        <div class="product-gallery">
+            <div class="main-image-container">
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="main-image" id="mainImage">
+            </div>
+        </div>
+
+        <!-- Product Information -->
+        <div class="product-info-section">
+            <div class="breadcrumb">
+                <a href="{% url 'store:home' %}">Home</a>
+                <span>/</span>
+                <span>{{ product.name }}</span>
+            </div>
+
+            <span class="origin-badge">{{ product.get_origin_display }}</span>
+            <h1 class="product-title">{{ product.name }}</h1>
+            <p class="product-short-desc">{{ product.short_description }}</p>
+
+            <div class="variant-section">
+                <label class="variant-label">Choose Size</label>
+                <div class="variant-options">
+                    {% for variant in product.variants.all %}
+                        <button class="variant-btn {% if forloop.first %}active{% endif %}" data-variant-id="{{ variant.id }}" data-price="{{ variant.price }}" data-ml="{{ variant.ml }}">
+                            {{ variant.ml }} ml — ₹{{ variant.price }}
+                        </button>
+                    {% empty %}
+                        <span style="color: var(--text-muted); font-size: 14px;">Single size available</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="price-section">
+                <div class="price" id="priceDisplay">₹{{ product.default_variant_price }}</div>
+                <div class="price-label" id="variantMeta">
+                    {% with default_variant=product.default_variant %}
+                        {% if default_variant %}
+                            {{ default_variant.ml }}ml • Inclusive of all taxes
+                        {% else %}
+                            Inclusive of all taxes
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <div class="quantity-section">
+                <label class="quantity-label">Quantity</label>
+                <div class="quantity-selector">
+                    <button class="qty-btn" onclick="decreaseQty()" id="decreaseBtn">−</button>
+                    <span class="qty-value" id="quantity">1</span>
+                    <button class="qty-btn" onclick="increaseQty()">+</button>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary btn-add-cart" onclick="addToCart()">Add to Cart</button>
+                <button class="btn-secondary btn-buy-now" onclick="buyNow()">Buy Now</button>
+            </div>
+
+            <div class="product-details">
+                <div class="detail-item">
+                    <span class="detail-label">Fragrance Notes</span>
+                    <span class="detail-value">{{ product.fragrance_notes }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Origin</span>
+                    <span class="detail-value">{{ product.get_origin_display }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Type</span>
+                    <span class="detail-value">Non-Alcohol, Long-lasting</span>
+                </div>
+            </div>
+
+            <div class="description-section">
+                <h3 class="description-title">About This Fragrance</h3>
+                <p class="description-text">{{ product.full_description }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Products -->
+{% if related_products %}
+<section class="related-section">
+    <h2 class="related-title">You May Also Like</h2>
+    <div class="related-grid">
+        {% for related in related_products %}
+        <div class="related-card" onclick="window.location.href='{% url 'store:product_detail' related.slug %}'">
+            <img src="{{ related.image.url }}" alt="{{ related.name }}" class="related-image">
+            <div class="related-info">
+                <div class="related-name">{{ related.name }}</div>
+                {% with related_variant=related.variants.all|first %}
+                    <div class="related-price">₹{{ related_variant.price|default:related.price }}{% if related_variant %} • {{ related_variant.ml }}ml{% endif %}</div>
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let quantity = 1;
+    const productData = {
+        id: '{{ product.id }}',
+        name: '{{ product.name|escapejs }}',
+        basePrice: parseFloat('{{ product.default_variant_price }}'),
+        image: '{{ product.image.url }}',
+        variants: [
+            {% for variant in product.variants.all %}
+                { id: '{{ variant.id }}', ml: {{ variant.ml }}, price: parseFloat('{{ variant.price }}') }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
+    let selectedVariant = productData.variants[0] || null;
+
+    function updateQuantityDisplay() {
+        document.getElementById('quantity').textContent = quantity;
+        document.getElementById('decreaseBtn').disabled = quantity <= 1;
+    }
+
+    function increaseQty() {
+        quantity++;
+        updateQuantityDisplay();
+    }
+
+    function decreaseQty() {
+        if (quantity > 1) {
+            quantity--;
+            updateQuantityDisplay();
+        }
+    }
+
+    function addToCart() {
+        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+        
+        const existingIndex = cart.findIndex(item => 
+            item.id === productData.id && item.type === 'product' && item.variant_id === (selectedVariant ? selectedVariant.id : null)
+        );
+        
+        if (existingIndex > -1) {
+            cart[existingIndex].quantity += quantity;
+        } else {
+            cart.push({
+                id: productData.id,
+                type: 'product',
+                name: productData.name,
+                price: selectedVariant ? selectedVariant.price : productData.basePrice,
+                image: productData.image,
+                variant_id: selectedVariant ? selectedVariant.id : null,
+                variant_ml: selectedVariant ? selectedVariant.ml : null,
+                quantity: quantity
+            });
+        }
+        
+        sessionStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Update cart count
+        window.dispatchEvent(new Event('cart-updated'));
+        
+        // Show notification
+        showNotification(`${quantity} × ${productData.name} added to cart!`);
+        
+        // Reset quantity
+        quantity = 1;
+        updateQuantityDisplay();
+    }
+
+    function buyNow() {
+        addToCart();
+        window.location.href = '{% url "store:cart" %}';
+    }
+
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, var(--gold), var(--warm-amber));
+            color: var(--primary-black);
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInUp 0.3s ease-out;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutDown 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Image zoom effect
+    const mainImage = document.getElementById('mainImage');
+    mainImage.addEventListener('click', () => {
+        if (mainImage.style.transform === 'scale(1.5)') {
+            mainImage.style.transform = 'scale(1)';
+            mainImage.style.cursor = 'zoom-in';
+        } else {
+            mainImage.style.transform = 'scale(1.5)';
+            mainImage.style.cursor = 'zoom-out';
+        }
+    });
+
+    // Initialize
+    updateQuantityDisplay();
+
+    function updatePriceUI() {
+        const priceDisplay = document.getElementById('priceDisplay');
+        const meta = document.getElementById('variantMeta');
+        const priceValue = selectedVariant ? selectedVariant.price : productData.basePrice;
+        priceDisplay.textContent = `₹${priceValue}`;
+        meta.textContent = selectedVariant
+            ? `${selectedVariant.ml}ml • Inclusive of all taxes`
+            : 'Inclusive of all taxes';
+    }
+
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const variantId = btn.dataset.variantId;
+            selectedVariant = productData.variants.find(v => v.id === variantId) || null;
+            updatePriceUI();
+        });
+    });
+
+    updatePriceUI();
+</script>
+{% endblock %}

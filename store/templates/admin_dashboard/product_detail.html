@@ -1,0 +1,148 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}Product Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Action Buttons -->
+    <div class="mb-3">
+        <a href="{% url 'admin_product_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Products
+        </a>
+        <a href="{% url 'admin_product_edit' product.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edit Product
+        </a>
+        <a href="{% url 'admin_product_delete' product.pk %}" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Product Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Product Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                 class="img-fluid rounded">
+                            {% else %}
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                                 style="height: 250px; border-radius: 10px;">
+                                <i class="bi bi-image" style="font-size: 4rem;"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h3>{{ product.name }}</h3>
+                            <p class="text-muted">{{ product.short_description }}</p>
+                            
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="30%">Origin:</th>
+                                    <td>{{ product.get_origin_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fragrance Notes:</th>
+                                    <td>{{ product.fragrance_notes }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Base Price:</th>
+                                    <td><strong>₹{{ product.price }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Default Variant Price:</th>
+                                    <td><strong>₹{{ product.default_variant_price }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if product.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                        {% if product.is_featured %}
+                                            <span class="badge bg-warning">Featured</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>{{ product.created_at|date:"M d, Y h:i A" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Updated:</th>
+                                    <td>{{ product.updated_at|date:"M d, Y h:i A" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Full Description</h6>
+                    <p>{{ product.full_description }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variants Section -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Product Variants</h5>
+                    <a href="{% url 'admin_variant_create' product.pk %}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus"></i> Add
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if variants %}
+                    <div class="list-group list-group-flush">
+                        {% for variant in variants %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ variant.ml }} ml</h6>
+                                    <p class="mb-1"><strong>₹{{ variant.price }}</strong></p>
+                                    {% if variant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'admin_variant_edit' variant.pk %}" 
+                                       class="btn btn-outline-primary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'admin_variant_delete' variant.pk %}" 
+                                       class="btn btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <small class="text-muted">Added: {{ variant.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p class="mt-2">No variants yet</p>
+                        <a href="{% url 'admin_variant_create' product.pk %}" class="btn btn-sm btn-success">
+                            Add First Variant
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}{{ action }} Combo{% endblock %}
+{% block page_title %}{{ action }} Combo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} Combo</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                Combo Title <span class="text-danger">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">{{ form.title.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">
+                                Combo Image
+                            </label>
+                            {{ form.image }}
+                            {% if combo and combo.image %}
+                                <div class="mt-2">
+                                    <img src="{{ combo.image.url }}" alt="Current image" 
+                                         style="max-width: 200px; border-radius: 5px;">
+                                </div>
+                            {% endif %}
+                            {% if form.image.errors %}
+                                <div class="text-danger small">{{ form.image.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Select Products <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                {% for checkbox in form.products %}
+                                <div class="form-check mb-2">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Select at least 2 products for the combo</small>
+                            {% if form.products.errors %}
+                                <div class="text-danger small">{{ form.products.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.discount_percentage.id_for_label }}" class="form-label">
+                                Discount Percentage <span class="text-danger">*</span>
+                            </label>
+                            {{ form.discount_percentage }}
+                            <small class="text-muted">Enter discount percentage (e.g., 10 for 10% off)</small>
+                            {% if form.discount_percentage.errors %}
+                                <div class="text-danger small">{{ form.discount_percentage.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.is_featured }}
+                                    <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
+                                        Featured Combo
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Active
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if combo %}{% url 'admin_combo_detail' combo.pk %}{% else %}{% url 'admin_combo_list' %}{% endif %}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> {{ action }} Combo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}Orders{% endblock %}
+{% block page_title %}Order Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Search and Filter Bar -->
+    <div class="search-filter-bar">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Search by order #, customer name, or phone..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-control">
+                    <option value="">All Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="?status=" class="btn btn-secondary w-100">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in page_obj %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'admin_order_detail' order.pk %}" class="fw-bold">
+                                    {{ order.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ order.customer_name }}</td>
+                            <td>{{ order.phone }}</td>
+                            <td>
+                                {{ order.city }}<br>
+                                <small class="text-muted">{{ order.pincode }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ order.items.count }} item(s)</span>
+                            </td>
+                            <td class="fw-bold">₹{{ order.total_amount }}</td>
+                            <td>
+                                {% if order.status == 'new' %}
+                                    <span class="badge bg-warning text-dark">New</span>
+                                {% elif order.status == 'processing' %}
+                                    <span class="badge bg-info">Processing</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ order.created_at|date:"M d, Y" }}<br>
+                                <small class="text-muted">{{ order.created_at|time:"h:i A" }}</small>
+                            </td>
+                            <td class="table-actions">
+                                <a href="{% url 'admin_order_detail' order.pk %}" 
+                                   class="btn btn-sm btn-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'admin_order_delete' order.pk %}" 
+                                   class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                <p class="mt-3">No orders found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&status={{ status_filter }}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

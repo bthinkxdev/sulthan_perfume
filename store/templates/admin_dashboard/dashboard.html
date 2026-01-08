@@ -1,0 +1,145 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card position-relative">
+                <i class="bi bi-box-seam icon"></i>
+                <p class="text-muted mb-1">Total Products</p>
+                <h3>{{ total_products }}</h3>
+                <a href="{% url 'admin_product_list' %}" class="btn btn-sm btn-primary mt-2">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card position-relative">
+                <i class="bi bi-collection icon"></i>
+                <p class="text-muted mb-1">Active Combos</p>
+                <h3>{{ total_combos }}</h3>
+                <a href="{% url 'admin_combo_list' %}" class="btn btn-sm btn-primary mt-2">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card position-relative">
+                <i class="bi bi-cart-check icon"></i>
+                <p class="text-muted mb-1">Total Orders</p>
+                <h3>{{ total_orders }}</h3>
+                <a href="{% url 'admin_order_list' %}" class="btn btn-sm btn-primary mt-2">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card position-relative">
+                <i class="bi bi-clock-history icon"></i>
+                <p class="text-muted mb-1">Pending Orders</p>
+                <h3>{{ new_orders }}</h3>
+                <a href="{% url 'admin_order_list' %}?status=new" class="btn btn-sm btn-warning mt-2">
+                    View Pending
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Orders -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Orders</h5>
+                    <a href="{% url 'admin_order_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'admin_order_detail' order.pk %}">
+                                            {{ order.order_number }}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.customer_name }}</td>
+                                    <td>₹{{ order.total_amount }}</td>
+                                    <td>
+                                        {% if order.status == 'new' %}
+                                            <span class="badge bg-warning">New</span>
+                                        {% elif order.status == 'processing' %}
+                                            <span class="badge bg-info">Processing</span>
+                                        {% elif order.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        No orders yet
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Featured Products -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Featured Products</h5>
+                    <a href="{% url 'admin_product_list' %}?status=featured" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for product in featured_products %}
+                        <a href="{% url 'admin_product_detail' product.pk %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" class="me-3">
+                                {% else %}
+                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center me-3"
+                                     style="width: 50px; height: 50px; border-radius: 5px;">
+                                    <i class="bi bi-image"></i>
+                                </div>
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ product.name }}</h6>
+                                    <small class="text-muted">₹{{ product.default_variant_price }}</small>
+                                </div>
+                                <span class="badge bg-primary">Featured</span>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <p class="text-center text-muted py-4">No featured products</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

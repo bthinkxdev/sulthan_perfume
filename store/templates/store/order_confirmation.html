@@ -1,0 +1,258 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Order Confirmation - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .confirmation-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .confirmation-container {
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .success-icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 32px;
+        background: linear-gradient(135deg, #c46f44 0%, #f4c29a 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        box-shadow: 0 10px 30px rgba(196, 111, 68, 0.25);
+    }
+
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .confirmation-title {
+        font-family: var(--font-heading);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 16px;
+        animation: fadeInUp 0.6s ease-out 0.2s both;
+    }
+
+    .confirmation-subtitle {
+        font-size: 18px;
+        color: var(--text-muted);
+        margin-bottom: 40px;
+        animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+
+    .order-details {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 32px;
+        margin-bottom: 32px;
+        animation: fadeInUp 0.6s ease-out 0.4s both;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .order-number {
+        font-size: 16px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+    }
+
+    .order-id {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 24px;
+        letter-spacing: 1px;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .detail-value {
+        color: var(--text-main);
+        font-weight: 600;
+        font-size: 14px;
+        text-align: right;
+    }
+
+    .contact-section {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 32px;
+        animation: fadeInUp 0.6s ease-out 0.5s both;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .contact-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 12px;
+    }
+
+    .contact-text {
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 16px;
+    }
+
+    .whatsapp-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #25D366;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition-smooth);
+        box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
+    }
+
+    .whatsapp-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.6s ease-out 0.6s both;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .confirmation-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .confirmation-title {
+            font-size: 32px;
+        }
+
+        .order-details {
+            padding: 24px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons a,
+        .action-buttons button {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="confirmation-page">
+    <div class="confirmation-container">
+        <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+        
+        <h1 class="confirmation-title">Order Placed Successfully!</h1>
+        <p class="confirmation-subtitle">Thank you for your purchase. We'll contact you shortly to confirm your order.</p>
+
+        <div class="order-details">
+            <div class="order-number">Order Number</div>
+            <div class="order-id">{{ order.order_number }}</div>
+
+            <div class="detail-row">
+                <span class="detail-label">Customer Name</span>
+                <span class="detail-value">{{ order.customer_name }}</span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ order.phone }}</span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Delivery Address</span>
+                <span class="detail-value">{{ order.city }}, {{ order.pincode }}</span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Order Total</span>
+                <span class="detail-value">₹{{ order.total_amount }}</span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value" style="color: var(--gold);">{{ order.get_status_display }}</span>
+            </div>
+        </div>
+
+        <div class="contact-section">
+            <div class="contact-title">What's Next?</div>
+            <p class="contact-text">
+                Our team will contact you shortly on <strong>{{ order.phone }}</strong> to confirm your order and delivery details.
+            </p>
+            <a href="https://wa.me/{{ site_config.phone|cut:' ' }}?text=Hi, I placed an order {{ order.order_number }}" class="whatsapp-btn" target="_blank">
+                <span><i class="fa-brands fa-whatsapp"></i></span> Chat on WhatsApp
+            </a>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{% url 'store:home' %}" class="btn-primary">Continue Shopping</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

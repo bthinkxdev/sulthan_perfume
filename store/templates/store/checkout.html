@@ -1,0 +1,536 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Checkout - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .checkout-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .page-title {
+        font-family: var(--font-heading);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .checkout-content {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 32px;
+        align-items: start;
+    }
+
+    .checkout-form {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 32px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .form-section-title {
+        font-family: var(--font-heading);
+        font-size: 24px;
+        color: var(--primary);
+        margin-bottom: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
+
+    .required {
+        color: #ff3b30;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 14px 16px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-main);
+        font-size: 15px;
+        transition: var(--transition-smooth);
+        font-family: var(--font-sans);
+    }
+
+    .form-input:focus {
+        outline: none;
+        background: var(--white);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(196, 111, 68, 0.12);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .error-message {
+        color: #ff3b30;
+        font-size: 13px;
+        margin-top: 6px;
+        display: none;
+    }
+
+    .form-input.error {
+        border-color: #ff3b30;
+    }
+
+    .order-summary-section {
+        position: sticky;
+        top: 100px;
+    }
+
+    .order-summary {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .summary-title {
+        font-family: var(--font-heading);
+        font-size: 24px;
+        color: var(--primary);
+        margin-bottom: 24px;
+    }
+
+    .summary-item {
+        display: flex;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+
+    .summary-item-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    .summary-item-details {
+        flex: 1;
+    }
+
+    .summary-item-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+    }
+
+    .summary-item-qty {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .summary-item-price {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary);
+        text-align: right;
+    }
+
+    .summary-totals {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 2px solid var(--primary);
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 15px;
+    }
+
+    .summary-row.total {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-top: 8px;
+    }
+
+    .place-order-btn {
+        width: 100%;
+        padding: 18px;
+        font-size: 16px;
+        position: relative;
+    }
+
+    .place-order-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .back-to-cart {
+        display: block;
+        text-align: center;
+        margin-top: 16px;
+        color: var(--medium-gray);
+        text-decoration: none;
+        font-size: 14px;
+        transition: var(--transition-smooth);
+    }
+
+    .back-to-cart:hover {
+        color: var(--primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+        .checkout-content {
+            grid-template-columns: 1fr;
+        }
+
+        .order-summary-section {
+            position: static;
+        }
+
+        .page-title {
+            font-size: 32px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .checkout-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .checkout-form,
+        .order-summary {
+            padding: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="checkout-page">
+    <div class="checkout-container">
+        <h1 class="page-title">Checkout</h1>
+
+        <div class="checkout-content">
+            <!-- Checkout Form -->
+            <div class="checkout-form">
+                <h2 class="form-section-title">Delivery Information</h2>
+                
+                <form id="checkoutForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label">Full Name <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="customerName" name="customer_name" placeholder="Enter your full name" required>
+                        <div class="error-message" id="nameError">Please enter your name</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Phone Number <span class="required">*</span></label>
+                        <input type="tel" class="form-input" id="phone" name="phone" placeholder="+91 98765 43210" required>
+                        <div class="error-message" id="phoneError">Please enter a valid phone number</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Address <span class="required">*</span></label>
+                        <textarea class="form-input" id="address" name="address_line" rows="3" placeholder="House/Flat no, Building name, Street" required></textarea>
+                        <div class="error-message" id="addressError">Please enter your address</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">City <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="city" name="city" placeholder="City" required>
+                            <div class="error-message" id="cityError">Please enter city</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">PIN Code <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="pincode" name="pincode" placeholder="670001" required>
+                            <div class="error-message" id="pincodeError">Please enter PIN code</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="order-summary-section">
+                <div class="order-summary" id="orderSummary">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <button class="btn-primary place-order-btn" id="placeOrderBtn" onclick="placeOrder()">
+                    Place Order
+                </button>
+                
+                <a href="{% url 'store:cart' %}" class="back-to-cart">← Back to Cart</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function loadOrderSummary() {
+        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+        
+        if (cart.length === 0) {
+            window.location.href = '{% url "store:cart" %}';
+            return;
+        }
+
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const total = subtotal;
+
+        const itemsHTML = cart.map(item => `
+            <div class="summary-item">
+                ${item.image ? `<img src="${item.image}" alt="${item.name}" class="summary-item-image">` : '<div class="summary-item-image" style="background: var(--charcoal);"></div>'}
+                <div class="summary-item-details">
+                    <div class="summary-item-name">${item.name}</div>
+                    <div class="summary-item-qty">
+                        ${item.type === 'combo' ? 'Combo Offer' : 'Single Product'}${item.variant_ml ? ` • ${item.variant_ml}ml` : ''} — Qty: ${item.quantity}
+                    </div>
+                </div>
+                <div class="summary-item-price">₹${(item.price * item.quantity).toFixed(2)}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('orderSummary').innerHTML = `
+            <h3 class="summary-title">Order Summary</h3>
+            ${itemsHTML}
+            <div class="summary-totals">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>₹${subtotal.toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span>₹${total.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function validateForm() {
+        let isValid = true;
+
+        // Name validation
+        const name = document.getElementById('customerName').value.trim();
+        if (name.length < 2) {
+            showError('customerName', 'nameError', 'Please enter a valid name');
+            isValid = false;
+        } else {
+            hideError('customerName', 'nameError');
+        }
+
+        // Phone validation
+        const phone = document.getElementById('phone').value.trim();
+        const phoneRegex = /^[+]?[0-9]{10,15}$/;
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+            showError('phone', 'phoneError', 'Please enter a valid phone number');
+            isValid = false;
+        } else {
+            hideError('phone', 'phoneError');
+        }
+
+        // Address validation
+        const address = document.getElementById('address').value.trim();
+        if (address.length < 10) {
+            showError('address', 'addressError', 'Please enter a complete address');
+            isValid = false;
+        } else {
+            hideError('address', 'addressError');
+        }
+
+        // City validation
+        const city = document.getElementById('city').value.trim();
+        if (city.length < 2) {
+            showError('city', 'cityError', 'Please enter city');
+            isValid = false;
+        } else {
+            hideError('city', 'cityError');
+        }
+
+        // Pincode validation
+        const pincode = document.getElementById('pincode').value.trim();
+        const pincodeRegex = /^[0-9]{6}$/;
+        if (!pincodeRegex.test(pincode)) {
+            showError('pincode', 'pincodeError', 'Please enter a valid 6-digit PIN code');
+            isValid = false;
+        } else {
+            hideError('pincode', 'pincodeError');
+        }
+
+        return isValid;
+    }
+
+    function showError(inputId, errorId, message) {
+        const input = document.getElementById(inputId);
+        const error = document.getElementById(errorId);
+        input.classList.add('error');
+        error.textContent = message;
+        error.style.display = 'block';
+    }
+
+    function hideError(inputId, errorId) {
+        const input = document.getElementById(inputId);
+        const error = document.getElementById(errorId);
+        input.classList.remove('error');
+        error.style.display = 'none';
+    }
+
+    async function placeOrder() {
+        if (!validateForm()) {
+            return;
+        }
+
+        const btn = document.getElementById('placeOrderBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading"></span> Processing...';
+
+        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+        
+        const orderData = {
+            customer_name: document.getElementById('customerName').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            address_line: document.getElementById('address').value.trim(),
+            city: document.getElementById('city').value.trim(),
+            pincode: document.getElementById('pincode').value.trim(),
+            cart_items: cart.map(item => ({
+                id: item.id,
+                type: item.type,
+                quantity: item.quantity,
+                variant_id: item.variant_id || null
+            }))
+        };
+
+        try {
+            const response = await fetch('{% url "store:place_order" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Clear cart
+                sessionStorage.removeItem('cart');
+                window.dispatchEvent(new Event('cart-updated'));
+                
+                // Redirect to confirmation
+                window.location.href = '{% url "store:order_confirmation" "ORDER_NUMBER" %}'.replace('ORDER_NUMBER', result.order_number);
+            } else {
+                alert('Error: ' + (result.error || 'Something went wrong'));
+                btn.disabled = false;
+                btn.textContent = 'Place Order';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to place order. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Place Order';
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Load summary on page load
+    loadOrderSummary();
+
+    // Add real-time validation
+    document.getElementById('customerName').addEventListener('blur', () => {
+        const name = document.getElementById('customerName').value.trim();
+        if (name && name.length >= 2) {
+            hideError('customerName', 'nameError');
+        }
+    });
+
+    document.getElementById('phone').addEventListener('blur', () => {
+        const phone = document.getElementById('phone').value.trim();
+        const phoneRegex = /^[+]?[0-9]{10,15}$/;
+        if (phone && phoneRegex.test(phone.replace(/\s/g, ''))) {
+            hideError('phone', 'phoneError');
+        }
+    });
+
+    document.getElementById('address').addEventListener('blur', () => {
+        const address = document.getElementById('address').value.trim();
+        if (address && address.length >= 10) {
+            hideError('address', 'addressError');
+        }
+    });
+
+    document.getElementById('city').addEventListener('blur', () => {
+        const city = document.getElementById('city').value.trim();
+        if (city && city.length >= 2) {
+            hideError('city', 'cityError');
+        }
+    });
+
+    document.getElementById('pincode').addEventListener('blur', () => {
+        const pincode = document.getElementById('pincode').value.trim();
+        const pincodeRegex = /^[0-9]{6}$/;
+        if (pincode && pincodeRegex.test(pincode)) {
+            hideError('pincode', 'pincodeError');
+        }
+    });
+</script>
+{% endblock %}

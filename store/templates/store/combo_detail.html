@@ -1,0 +1,480 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ combo.title }} - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .combo-detail-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .combo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .breadcrumb {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 40px;
+        font-size: 14px;
+        color: var(--medium-gray);
+    }
+
+    .breadcrumb a {
+        color: var(--medium-gray);
+        text-decoration: none;
+        transition: var(--transition-smooth);
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary);
+    }
+
+    .combo-hero {
+        background: var(--card);
+        border-radius: 32px;
+        border: 1px solid var(--border);
+        padding: 48px;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+.combo-hero-grid {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 32px;
+    align-items: center;
+}
+
+.combo-image-cover {
+    width: 100%;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    height: 360px;
+    object-fit: cover;
+    box-shadow: var(--shadow-sm);
+    background: var(--card-strong);
+}
+
+    .combo-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, #c46f44 0%, #f4c29a 100%);
+    }
+
+    .combo-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #c46f44 0%, #f4c29a 100%);
+        color: var(--white);
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .combo-title {
+        font-family: var(--font-heading);
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 24px;
+        line-height: 1.2;
+    }
+
+    .pricing-section {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+    }
+
+    .original-price {
+        font-size: 28px;
+        color: var(--text-muted);
+        text-decoration: line-through;
+    }
+
+    .combo-price {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .discount-badge {
+        background: linear-gradient(135deg, #c46f44 0%, #f4c29a 100%);
+        color: var(--white);
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .savings-text {
+        color: var(--primary);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .combo-actions {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .btn-add-combo {
+        flex: 2;
+        padding: 18px 32px;
+        font-size: 16px;
+    }
+
+    .products-included {
+        margin-top: 40px;
+    }
+
+    .section-title {
+        font-family: var(--font-heading);
+        font-size: 32px;
+        color: var(--primary);
+        margin-bottom: 32px;
+        text-align: center;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
+    }
+
+    .product-card {
+        background: var(--card-strong);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: var(--transition-smooth);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .product-image {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+    }
+
+    .product-info {
+        padding: 24px;
+    }
+
+    .product-origin {
+        display: inline-block;
+        background: rgba(248, 216, 197, 0.9);
+        color: var(--primary);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+    }
+
+    .product-name {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
+
+    .product-desc {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .product-individual-price {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        font-size: 18px;
+        color: var(--text-muted);
+    }
+
+    .combo-benefits {
+        background: var(--card);
+        border-radius: 24px;
+        padding: 40px;
+        margin-top: 60px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 32px;
+        margin-top: 32px;
+    }
+
+    .benefit {
+        text-align: center;
+    }
+
+    .benefit-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .benefit-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+
+    .benefit-desc {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    @media (max-width: 968px) {
+        .combo-hero {
+            padding: 32px 24px;
+        }
+
+    .combo-hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .combo-image-cover {
+        height: 300px;
+    }
+
+        .combo-title {
+            font-size: 36px;
+        }
+
+        .combo-price {
+            font-size: 38px;
+        }
+
+        .products-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .combo-detail-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .combo-hero {
+            padding: 24px;
+        }
+
+    .combo-image-cover {
+        height: 240px;
+    }
+
+        .combo-title {
+            font-size: 28px;
+        }
+
+        .pricing-section {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .combo-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="combo-detail-page">
+    <div class="combo-container">
+        <div class="breadcrumb">
+            <a href="{% url 'store:home' %}">Home</a>
+            <span>/</span>
+            <a href="{% url 'store:home' %}#combos">Combos</a>
+            <span>/</span>
+            <span>{{ combo.title }}</span>
+        </div>
+
+        <div class="combo-hero">
+            <div class="combo-hero-grid">
+                <div>
+                    {% if combo.image %}
+                        <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image-cover">
+                    {% elif combo.products.first %}
+                        <img src="{{ combo.products.first.image.url }}" alt="{{ combo.products.first.name }}" class="combo-image-cover">
+                    {% else %}
+                        <div class="combo-image-cover" style="display: grid; place-items: center; color: var(--text-muted); border: 1px dashed var(--border);">No image available</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="combo-badge">🎁 Special Combo Offer</span>
+                    <h1 class="combo-title">{{ combo.title }}</h1>
+                    <p style="color: var(--text-muted); margin-top: -8px;">Includes {{ combo.products.count }} product{{ combo.products.count|pluralize }}</p>
+
+                    <div class="pricing-section">
+                        <span class="original-price">₹{{ combo.original_price }}</span>
+                        <span class="combo-price">₹{{ combo.discounted_price|floatformat:0 }}</span>
+                        <span class="discount-badge">{{ combo.discount_percentage }}% OFF</span>
+                        <span class="savings-text">Save {{ combo.discount_percentage }}%</span>
+                    </div>
+
+                    <div class="combo-actions">
+                        <button class="btn-primary btn-add-combo" onclick="addComboToCart()">
+                            Add Combo to Cart
+                        </button>
+                        <a href="{% url 'store:home' %}" class="btn-secondary">
+                            Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="products-included">
+            <h2 class="section-title">Products Included in This Combo</h2>
+
+            <div class="products-grid">
+                {% for product in combo.products.all %}
+                <div class="product-card">
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                    <div class="product-info">
+                        <span class="product-origin">{{ product.get_origin_display }}</span>
+                        <h3 class="product-name">{{ product.name }}</h3>
+                        <p class="product-desc">{{ product.short_description }}</p>
+                        <div class="product-individual-price">
+                            Individual Price: ₹{{ product.price }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="combo-benefits">
+            <h2 class="section-title">Why Choose This Combo?</h2>
+
+            <div class="benefits-grid">
+                <div class="benefit">
+                    <div class="benefit-icon"><i class="fa-solid fa-badge-percent"></i></div>
+                    <div class="benefit-title">Best Value</div>
+                    <div class="benefit-desc">Save {{ combo.discount_percentage }}% on your purchase</div>
+                </div>
+
+                <div class="benefit">
+                    <div class="benefit-icon"><i class="fa-solid fa-bullseye"></i></div>
+                    <div class="benefit-title">Curated Selection</div>
+                    <div class="benefit-desc">Perfectly paired fragrances</div>
+                </div>
+
+                <div class="benefit">
+                    <div class="benefit-icon"><i class="fa-solid fa-gift"></i></div>
+                    <div class="benefit-title">Gift Ready</div>
+                    <div class="benefit-desc">Perfect for special occasions</div>
+                </div>
+
+                <div class="benefit">
+                    <div class="benefit-icon"><i class="fa-solid fa-gem"></i></div>
+                    <div class="benefit-title">Premium Quality</div>
+                    <div class="benefit-desc">All products are premium grade</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const comboData = {
+        id: '{{ combo.id }}',
+        title: '{{ combo.title }}',
+        price: parseFloat('{{ combo.discounted_price }}'),
+        image: '{% if combo.image %}{{ combo.image.url }}{% elif combo.products.first %}{{ combo.products.first.image.url }}{% endif %}',
+        images: [{% for product in combo.products.all %}{% if product.image %}"{{ product.image.url }}"{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}]
+    };
+
+    function addComboToCart() {
+        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+        
+        const existingIndex = cart.findIndex(item => 
+            item.id === comboData.id && item.type === 'combo'
+        );
+        
+        if (existingIndex > -1) {
+            cart[existingIndex].quantity += 1;
+        } else {
+            cart.push({
+                id: comboData.id,
+                type: 'combo',
+                name: comboData.title,
+                price: comboData.price,
+                image: comboData.image,
+                images: (comboData.images || []).filter(Boolean),
+                quantity: 1
+            });
+        }
+        
+        sessionStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Update cart count
+        window.dispatchEvent(new Event('cart-updated'));
+        
+        // Show notification
+        showNotification(`${comboData.title} added to cart!`);
+    }
+
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, var(--gold), var(--warm-amber));
+            color: var(--primary-black);
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInUp 0.3s ease-out;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutDown 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

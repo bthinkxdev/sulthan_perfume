@@ -1,0 +1,253 @@
+{% extends 'admin_dashboard/base.html' %}
+
+{% block title %}{{ action }} Product{% endblock %}
+{% block page_title %}{{ action }} Product{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} Product</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    Product Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.short_description.id_for_label }}" class="form-label">
+                                    Short Description <span class="text-danger">*</span>
+                                </label>
+                                {{ form.short_description }}
+                                {% if form.short_description.errors %}
+                                    <div class="text-danger small">{{ form.short_description.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.full_description.id_for_label }}" class="form-label">
+                                    Full Description <span class="text-danger">*</span>
+                                </label>
+                                {{ form.full_description }}
+                                {% if form.full_description.errors %}
+                                    <div class="text-danger small">{{ form.full_description.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.origin.id_for_label }}" class="form-label">
+                                    Origin <span class="text-danger">*</span>
+                                </label>
+                                {{ form.origin }}
+                                {% if form.origin.errors %}
+                                    <div class="text-danger small">{{ form.origin.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.fragrance_notes.id_for_label }}" class="form-label">
+                                    Fragrance Notes <span class="text-danger">*</span>
+                                </label>
+                                {{ form.fragrance_notes }}
+                                {% if form.fragrance_notes.errors %}
+                                    <div class="text-danger small">{{ form.fragrance_notes.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.price.id_for_label }}" class="form-label">
+                                    Base Price (₹) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.price }}
+                                <small class="text-muted">This is the fallback price if no variants exist</small>
+                                {% if form.price.errors %}
+                                    <div class="text-danger small">{{ form.price.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.image.id_for_label }}" class="form-label">
+                                    Product Image <span class="text-danger">*</span>
+                                </label>
+                                {{ form.image }}
+                                {% if product and product.image %}
+                                    <div class="mt-2">
+                                        <img src="{{ product.image.url }}" alt="Current image" 
+                                             style="max-width: 150px; border-radius: 5px;">
+                                    </div>
+                                {% endif %}
+                                {% if form.image.errors %}
+                                    <div class="text-danger small">{{ form.image.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.is_featured }}
+                                    <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">
+                                        Featured Product
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Active
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3">Product Variants</h5>
+                        <p class="text-muted small">
+                            Add sizes and prices that customers can pick. Leave all fields blank to skip.
+                        </p>
+                        {{ variant_formset.management_form }}
+                        {% if variant_formset.non_form_errors %}
+                            <div class="alert alert-danger">
+                                {{ variant_formset.non_form_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div id="variants-container">
+                            {% for vform in variant_formset %}
+                                {{ vform.id }}
+                                <div class="border rounded p-3 mb-3 bg-light variant-form">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>
+                                            {% if vform.instance.pk %}Existing Variant{% else %}New Variant{% endif %}
+                                        </strong>
+                                        {% if vform.instance.pk %}
+                                            <div class="form-check">
+                                                {{ vform.DELETE }}
+                                                <label class="form-check-label" for="{{ vform.DELETE.id_for_label }}">
+                                                    Delete
+                                                </label>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ vform.ml.id_for_label }}" class="form-label">
+                                                Size (ml)
+                                            </label>
+                                            {{ vform.ml }}
+                                            {% if vform.ml.errors %}
+                                                <div class="text-danger small">{{ vform.ml.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="{{ vform.price.id_for_label }}" class="form-label">
+                                                Price (₹)
+                                            </label>
+                                            {{ vform.price }}
+                                            {% if vform.price.errors %}
+                                                <div class="text-danger small">{{ vform.price.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check mt-4">
+                                                {{ vform.is_active }}
+                                                <label class="form-check-label" for="{{ vform.is_active.id_for_label }}">
+                                                    Active
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-flex justify-content-end mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="addVariantBtn">
+                                <i class="bi bi-plus"></i> Add another variant
+                            </button>
+                        </div>
+
+                        <div id="variant-empty-form" class="d-none">
+                            {{ variant_formset.empty_form.id }}
+                            <div class="border rounded p-3 mb-3 bg-light variant-form">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>New Variant</strong>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ variant_formset.empty_form.ml.id_for_label }}" class="form-label">
+                                            Size (ml)
+                                        </label>
+                                        {{ variant_formset.empty_form.ml }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="{{ variant_formset.empty_form.price.id_for_label }}" class="form-label">
+                                            Price (₹)
+                                        </label>
+                                        {{ variant_formset.empty_form.price }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="form-check mt-4">
+                                            {{ variant_formset.empty_form.is_active }}
+                                            <label class="form-check-label" for="{{ variant_formset.empty_form.is_active.id_for_label }}">
+                                                Active
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if product %}{% url 'admin_product_detail' product.pk %}{% else %}{% url 'admin_product_list' %}{% endif %}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> {{ action }} Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const addBtn = document.getElementById('addVariantBtn');
+        const container = document.getElementById('variants-container');
+        const totalFormsInput = document.getElementById('id_variants-TOTAL_FORMS');
+        const emptyFormWrapper = document.querySelector('#variant-empty-form .variant-form');
+
+        if (!addBtn || !container || !totalFormsInput || !emptyFormWrapper) return;
+
+        addBtn.addEventListener('click', () => {
+            const formCount = parseInt(totalFormsInput.value, 10) || 0;
+            const newFormHtml = emptyFormWrapper.outerHTML.replace(/__prefix__/g, formCount);
+            container.insertAdjacentHTML('beforeend', newFormHtml);
+            totalFormsInput.value = formCount + 1;
+        });
+    })();
+</script>
+{% endblock %}
