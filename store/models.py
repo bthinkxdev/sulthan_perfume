@@ -177,7 +177,7 @@ class OrderItem(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(product__isnull=False) |
                     models.Q(combo__isnull=False)
                 ),
