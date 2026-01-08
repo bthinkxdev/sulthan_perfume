@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Product, ProductVariant, Combo, Order
+from .models import Product, ProductVariant, Combo, ComboProduct, Order
 
 
 class ProductForm(forms.ModelForm):
@@ -85,7 +85,7 @@ class ComboForm(forms.ModelForm):
     class Meta:
         model = Combo
         fields = [
-            'title', 'image', 'products',
+            'title', 'image',
             'discount_percentage', 'is_featured', 'is_active'
         ]
         widgets = {
@@ -95,9 +95,6 @@ class ComboForm(forms.ModelForm):
             }),
             'image': forms.FileInput(attrs={
                 'class': 'form-control'
-            }),
-            'products': forms.CheckboxSelectMultiple(attrs={
-                'class': 'form-check-input'
             }),
             'discount_percentage': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -113,9 +110,59 @@ class ComboForm(forms.ModelForm):
             }),
         }
 
+class ComboProductForm(forms.ModelForm):
+    class Meta:
+        model = ComboProduct
+        fields = ['product', 'variant']
+        widgets = {
+            'product': forms.Select(attrs={
+                'class': 'form-select combo-product-select'
+            }),
+            'variant': forms.Select(attrs={
+                'class': 'form-select combo-variant-select'
+            })
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['products'].queryset = Product.objects.filter(is_active=True)
+        self.fields['product'].queryset = Product.objects.filter(is_active=True)
+        self.fields['variant'].queryset = ProductVariant.objects.filter(is_active=True)
+
+        product_id = None
+        if self.is_bound:
+            product_id = self.data.get(self.add_prefix('product'))
+        elif self.instance and self.instance.product_id:
+            product_id = self.instance.product_id
+
+        if product_id:
+            self.fields['variant'].queryset = ProductVariant.objects.filter(
+                product_id=product_id,
+                is_active=True
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        product = cleaned_data.get('product')
+        variant = cleaned_data.get('variant')
+
+        if product and variant and variant.product_id != product.id:
+            raise forms.ValidationError(
+                "Selected variant must belong to the chosen product."
+            )
+
+        return cleaned_data
+
+
+ComboProductFormSet = inlineformset_factory(
+    Combo,
+    ComboProduct,
+    form=ComboProductForm,
+    fields=['product', 'variant'],
+    extra=2,
+    can_delete=True,
+    min_num=1,
+    validate_min=True
+)
 
 
 class OrderStatusForm(forms.ModelForm):

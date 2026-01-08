@@ -10,6 +10,7 @@ from .forms import (
     ProductVariantForm,
     ProductVariantFormSet,
     ComboForm,
+    ComboProductFormSet,
     OrderStatusForm
 )
 
@@ -218,6 +219,23 @@ def variant_delete(request, pk):
 
 # ============= COMBO MANAGEMENT =============
 
+
+def _product_variant_map():
+    """Build a lightweight mapping of product -> its active variants for the UI."""
+    products = Product.objects.filter(is_active=True).prefetch_related('variants')
+    mapping = {}
+
+    for product in products:
+        mapping[str(product.id)] = [
+            {
+                'id': str(variant.id),
+                'label': f"{variant.ml}ml - ₹{variant.price}"
+            }
+            for variant in product.variants.filter(is_active=True)
+        ]
+
+    return mapping
+
 # @staff_member_required
 def combo_list(request):
     """List all combos"""
@@ -253,17 +271,32 @@ def combo_list(request):
 # @staff_member_required
 def combo_create(request):
     """Create a new combo"""
+    combo = Combo()
     if request.method == 'POST':
-        form = ComboForm(request.POST, request.FILES)
-        if form.is_valid():
-            combo = form.save()
+        form = ComboForm(request.POST, request.FILES, instance=combo)
+        combo_items_formset = ComboProductFormSet(
+            request.POST,
+            prefix='combo_items',
+            instance=combo
+        )
+        if form.is_valid() and combo_items_formset.is_valid():
+            with transaction.atomic():
+                combo = form.save()
+                combo_items_formset.instance = combo
+                combo_items_formset.save()
             messages.success(request, f'Combo "{combo.title}" created successfully!')
             return redirect('admin_combo_detail', pk=combo.pk)
     else:
-        form = ComboForm()
+        form = ComboForm(instance=combo)
+        combo_items_formset = ComboProductFormSet(
+            prefix='combo_items',
+            instance=combo
+        )
     
     return render(request, 'admin_dashboard/combo_form.html', {
         'form': form,
+        'combo_items_formset': combo_items_formset,
+        'product_variant_map': _product_variant_map(),
         'action': 'Create'
     })
 
@@ -275,16 +308,29 @@ def combo_edit(request, pk):
     
     if request.method == 'POST':
         form = ComboForm(request.POST, request.FILES, instance=combo)
-        if form.is_valid():
-            combo = form.save()
+        combo_items_formset = ComboProductFormSet(
+            request.POST,
+            prefix='combo_items',
+            instance=combo
+        )
+        if form.is_valid() and combo_items_formset.is_valid():
+            with transaction.atomic():
+                combo = form.save()
+                combo_items_formset.save()
             messages.success(request, f'Combo "{combo.title}" updated successfully!')
             return redirect('admin_combo_detail', pk=combo.pk)
     else:
         form = ComboForm(instance=combo)
+        combo_items_formset = ComboProductFormSet(
+            prefix='combo_items',
+            instance=combo
+        )
     
     return render(request, 'admin_dashboard/combo_form.html', {
         'form': form,
         'combo': combo,
+        'combo_items_formset': combo_items_formset,
+        'product_variant_map': _product_variant_map(),
         'action': 'Edit'
     })
 
@@ -292,12 +338,18 @@ def combo_edit(request, pk):
 # @staff_member_required
 def combo_detail(request, pk):
     """View combo details"""
-    combo = get_object_or_404(Combo, pk=pk)
-    products = combo.products.all()
+    combo = get_object_or_404(
+        Combo.objects.prefetch_related(
+            'combo_products__product',
+            'combo_products__variant'
+        ),
+        pk=pk
+    )
+    combo_products = combo.combo_products.select_related('product', 'variant')
     
     return render(request, 'admin_dashboard/combo_detail.html', {
         'combo': combo,
-        'products': products,
+        'combo_products': combo_products,
     })
 
 

@@ -131,19 +131,20 @@
                                 <tr>
                                     <th>Image</th>
                                     <th>Product Name</th>
+                                    <th>Variant</th>
                                     <th>Origin</th>
                                     <th>Fragrance Notes</th>
-                                    <th>Price</th>
+                                    <th>Price (Selected Variant)</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for product in products %}
+                                {% for item in combo_products %}
                                 <tr>
                                     <td>
-                                        {% if product.image %}
-                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                        {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                         {% else %}
                                         <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
@@ -153,21 +154,22 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <strong>{{ product.name }}</strong><br>
-                                        <small class="text-muted">{{ product.short_description|truncatewords:8 }}</small>
+                                        <strong>{{ item.product.name }}</strong><br>
+                                        <small class="text-muted">{{ item.product.short_description|truncatewords:8 }}</small>
                                     </td>
-                                    <td>{{ product.get_origin_display }}</td>
-                                    <td>{{ product.fragrance_notes|truncatewords:5 }}</td>
-                                    <td>₹{{ product.default_variant_price }}</td>
+                                    <td>{{ item.variant.ml }} ml</td>
+                                    <td>{{ item.product.get_origin_display }}</td>
+                                    <td>{{ item.product.fragrance_notes|truncatewords:5 }}</td>
+                                    <td>₹{{ item.variant.price }}</td>
                                     <td>
-                                        {% if product.is_active %}
+                                        {% if item.product.is_active %}
                                             <span class="badge bg-success">Active</span>
                                         {% else %}
                                             <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'admin_product_detail' product.pk %}" 
+                                        <a href="{% url 'admin_product_detail' item.product.pk %}" 
                                            class="btn btn-sm btn-info">
                                             <i class="bi bi-eye"></i> View
                                         </a>
@@ -175,7 +177,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="8" class="text-center text-muted py-4">
                                         No products in this combo
                                     </td>
                                 </tr>

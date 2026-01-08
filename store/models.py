@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from decimal import Decimal
 from django.utils.text import slugify
 from django.utils import timezone
 import uuid
@@ -84,7 +85,12 @@ class Combo(models.Model):
 
     image = models.ImageField(upload_to='combos/', null=True, blank=True)
 
-    products = models.ManyToManyField(Product, related_name='combos')
+    products = models.ManyToManyField(
+        Product,
+        related_name='combos',
+        through='ComboProduct',
+        through_fields=('combo', 'product')
+    )
     discount_percentage = models.PositiveIntegerField(
         help_text="Discount percentage (e.g., 10 for 10%)"
     )
@@ -103,13 +109,62 @@ class Combo(models.Model):
         super().save(*args, **kwargs)
 
     def original_price(self):
-        return sum(product.default_variant_price for product in self.products.all())
+        """Sum the prices of selected variants in this combo, with a safe fallback."""
+        items = self.combo_products.select_related('variant')
+        total = Decimal('0.00')
+        has_items = False
+
+        for item in items:
+            if item.variant:
+                total += item.variant.price
+                has_items = True
+
+        if not has_items:
+            # Fallback for legacy combos without combo_products
+            total = sum(
+                product.default_variant_price
+                for product in self.products.all()
+            )
+
+        return total
 
     def discounted_price(self):
         return self.original_price() * (100 - self.discount_percentage) / 100
 
     def __str__(self):
         return self.title
+
+
+class ComboProduct(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    combo = models.ForeignKey(
+        Combo,
+        related_name='combo_products',
+        on_delete=models.CASCADE
+    )
+    product = models.ForeignKey(
+        Product,
+        related_name='combo_products',
+        on_delete=models.CASCADE
+    )
+    variant = models.ForeignKey(
+        ProductVariant,
+        related_name='combo_products',
+        on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['combo', 'product'],
+                name='unique_product_per_combo'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.combo.title} - {self.product.name} ({self.variant.ml}ml)"
 
 
 class Order(models.Model):

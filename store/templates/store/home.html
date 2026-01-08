@@ -922,18 +922,18 @@
 
         <div class="products-grid">
             {% for combo in combos %}
-            {% with first_product=combo.products.first %}
+            {% with first_item=combo.combo_products.first %}
             <div class="combo-card fade-in" onclick="window.location.href='{% url 'store:combo_detail' combo.slug %}'" style="cursor: pointer;">
                 <span class="combo-badge">Save {{ combo.discount_percentage }}%</span>
                 <h3 class="combo-title">{{ combo.title }}</h3>
-                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">Includes {{ combo.products.count }} product{{ combo.products.count|pluralize }}</p>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">Includes {{ combo.combo_products.count }} product{{ combo.combo_products.count|pluralize }}</p>
                 
                 <div class="combo-images">
                     <div class="combo-image-wrapper">
                         {% if combo.image %}
                             <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image">
-                        {% elif first_product and first_product.image %}
-                            <img src="{{ first_product.image.url }}" alt="{{ first_product.name }}" class="combo-image">
+                        {% elif first_item and first_item.product.image %}
+                            <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}" class="combo-image">
                         {% else %}
                             <div class="combo-image" style="background: var(--light-gray); display: grid; place-items: center; color: var(--text-muted); height: 220px; border-radius: 18px; border: 1px dashed var(--border);">No image</div>
                         {% endif %}
@@ -942,8 +942,8 @@
                 </div>
 
                 <div class="combo-products">
-                    {% for product in combo.products.all %}
-                    <span class="combo-product-tag">{{ product.name }}</span>
+                    {% for item in combo.combo_products.all %}
+                    <span class="combo-product-tag">{{ item.product.name }} • {{ item.variant.ml }}ml</span>
                     {% endfor %}
                 </div>
 
@@ -953,7 +953,7 @@
                     <span class="combo-discount">-{{ combo.discount_percentage }}%</span>
                 </div>
 
-                <button class="btn-primary" style="width: 100%;" onclick="event.stopPropagation(); addToCart('{{ combo.id }}', 'combo', '{{ combo.title }}', '{{ combo.discounted_price }}', '{% if combo.image %}{{ combo.image.url }}{% elif first_product and first_product.image %}{{ first_product.image.url }}{% endif %}')">Add Combo to Cart</button>
+                <button class="btn-primary" style="width: 100%;" onclick="event.stopPropagation(); addToCart('{{ combo.id }}', 'combo', '{{ combo.title }}', '{{ combo.discounted_price }}', '{% if combo.image %}{{ combo.image.url }}{% elif first_item and first_item.product.image %}{{ first_item.product.image.url }}{% endif %}')">Add Combo to Cart</button>
             </div>
             {% endwith %}
             {% empty %}

@@ -327,18 +327,20 @@
         <div class="combo-hero">
             <div class="combo-hero-grid">
                 <div>
-                    {% if combo.image %}
-                        <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image-cover">
-                    {% elif combo.products.first %}
-                        <img src="{{ combo.products.first.image.url }}" alt="{{ combo.products.first.name }}" class="combo-image-cover">
-                    {% else %}
-                        <div class="combo-image-cover" style="display: grid; place-items: center; color: var(--text-muted); border: 1px dashed var(--border);">No image available</div>
-                    {% endif %}
+                    {% with first_item=combo_items.first %}
+                        {% if combo.image %}
+                            <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image-cover">
+                        {% elif first_item %}
+                            <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}" class="combo-image-cover">
+                        {% else %}
+                            <div class="combo-image-cover" style="display: grid; place-items: center; color: var(--text-muted); border: 1px dashed var(--border);">No image available</div>
+                        {% endif %}
+                    {% endwith %}
                 </div>
                 <div>
                     <span class="combo-badge">🎁 Special Combo Offer</span>
                     <h1 class="combo-title">{{ combo.title }}</h1>
-                    <p style="color: var(--text-muted); margin-top: -8px;">Includes {{ combo.products.count }} product{{ combo.products.count|pluralize }}</p>
+                    <p style="color: var(--text-muted); margin-top: -8px;">Includes {{ combo_items.count }} product{{ combo_items.count|pluralize }}</p>
 
                     <div class="pricing-section">
                         <span class="original-price">₹{{ combo.original_price }}</span>
@@ -363,15 +365,15 @@
             <h2 class="section-title">Products Included in This Combo</h2>
 
             <div class="products-grid">
-                {% for product in combo.products.all %}
+                {% for item in combo_items %}
                 <div class="product-card">
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="product-image">
                     <div class="product-info">
-                        <span class="product-origin">{{ product.get_origin_display }}</span>
-                        <h3 class="product-name">{{ product.name }}</h3>
-                        <p class="product-desc">{{ product.short_description }}</p>
+                        <span class="product-origin">{{ item.product.get_origin_display }}</span>
+                        <h3 class="product-name">{{ item.product.name }}</h3>
+                        <p class="product-desc">{{ item.product.short_description }}</p>
                         <div class="product-individual-price">
-                            Individual Price: ₹{{ product.price }}
+                            ₹{{ item.variant.price }} • {{ item.variant.ml }}ml
                         </div>
                     </div>
                 </div>
@@ -418,8 +420,8 @@
         id: '{{ combo.id }}',
         title: '{{ combo.title }}',
         price: parseFloat('{{ combo.discounted_price }}'),
-        image: '{% if combo.image %}{{ combo.image.url }}{% elif combo.products.first %}{{ combo.products.first.image.url }}{% endif %}',
-        images: [{% for product in combo.products.all %}{% if product.image %}"{{ product.image.url }}"{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}]
+        image: '{% if combo.image %}{{ combo.image.url }}{% elif combo_items.first %}{{ combo_items.first.product.image.url }}{% endif %}',
+        images: [{% for item in combo_items %}{% if item.product.image %}"{{ item.product.image.url }}"{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}]
     };
 
     function addComboToCart() {

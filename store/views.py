@@ -24,7 +24,10 @@ def get_site_config():
 def home(request):
     """Landing page with products and combos"""
     products = Product.objects.filter(is_active=True).prefetch_related('variants')
-    combos = Combo.objects.filter(is_active=True).prefetch_related('products__variants')
+    combos = Combo.objects.filter(is_active=True).prefetch_related(
+        'combo_products__product__variants',
+        'combo_products__variant'
+    )
     featured_product = products.filter(is_featured=True).first() or products.first()
     site_config = get_site_config()
     
@@ -60,14 +63,19 @@ def product_detail(request, slug):
 def combo_detail(request, slug):
     """Combo detail page"""
     combo = get_object_or_404(
-        Combo.objects.prefetch_related('products__variants'),
+        Combo.objects.prefetch_related(
+            'combo_products__product__variants',
+            'combo_products__variant'
+        ),
         slug=slug,
         is_active=True
     )
     site_config = get_site_config()
+    combo_items = combo.combo_products.select_related('product', 'variant')
     
     context = {
         'combo': combo,
+        'combo_items': combo_items,
         'site_config': site_config,
     }
     return render(request, 'store/combo_detail.html', context)

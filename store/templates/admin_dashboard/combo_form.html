@@ -43,21 +43,80 @@
 
                         <div class="mb-3">
                             <label class="form-label">
-                                Select Products <span class="text-danger">*</span>
+                                Products & Variants <span class="text-danger">*</span>
                             </label>
-                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                                {% for checkbox in form.products %}
-                                <div class="form-check mb-2">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-                                        {{ checkbox.choice_label }}
-                                    </label>
-                                </div>
+                            <p class="text-muted small mb-2">Choose a product and its variant for each combo item.</p>
+
+                            <div id="combo-items-container">
+                                {{ combo_items_formset.management_form }}
+
+                                {% for item_form in combo_items_formset %}
+                                    <div class="combo-item-row border rounded p-3 mb-3">
+                                        {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-md-6">
+                                                <label class="form-label" for="{{ item_form.product.id_for_label }}">Product</label>
+                                                {{ item_form.product }}
+                                                {% if item_form.product.errors %}
+                                                    <div class="text-danger small">{{ item_form.product.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="{{ item_form.variant.id_for_label }}">Variant</label>
+                                                {{ item_form.variant }}
+                                                {% if item_form.variant.errors %}
+                                                    <div class="text-danger small">{{ item_form.variant.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-2">
+                                                {% if combo_items_formset.can_delete %}
+                                                <div class="form-check mt-4">
+                                                    {{ item_form.DELETE }}
+                                                    <label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">
+                                                        Remove
+                                                    </label>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if item_form.non_field_errors %}
+                                            <div class="text-danger small mt-2">{{ item_form.non_field_errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 {% endfor %}
                             </div>
-                            <small class="text-muted">Select at least 2 products for the combo</small>
-                            {% if form.products.errors %}
-                                <div class="text-danger small">{{ form.products.errors }}</div>
+
+                            <button id="add-combo-item" class="btn btn-outline-primary btn-sm" type="button">
+                                <i class="bi bi-plus-circle"></i> Add another product
+                            </button>
+
+                            <div id="combo-item-empty-form" class="d-none">
+                                <div class="combo-item-row border rounded p-3 mb-3">
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-6">
+                                            <label class="form-label" for="id_combo_items-__prefix__-product">Product</label>
+                                            {{ combo_items_formset.empty_form.product }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" for="id_combo_items-__prefix__-variant">Variant</label>
+                                            {{ combo_items_formset.empty_form.variant }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            {% if combo_items_formset.can_delete %}
+                                            <div class="form-check mt-4">
+                                                {{ combo_items_formset.empty_form.DELETE }}
+                                                <label class="form-check-label" for="id_combo_items-__prefix__-DELETE">
+                                                    Remove
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if combo_items_formset.non_form_errors %}
+                                <div class="text-danger small mt-2">{{ combo_items_formset.non_form_errors }}</div>
                             {% endif %}
                         </div>
 
@@ -109,4 +168,61 @@
         </div>
     </div>
 </div>
+
+{{ product_variant_map|json_script:"variant-data" }}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const variantData = JSON.parse(document.getElementById('variant-data').textContent || '{}');
+        const container = document.getElementById('combo-items-container');
+        const totalFormsInput = document.getElementById('id_combo_items-TOTAL_FORMS');
+        const emptyTemplate = document.getElementById('combo-item-empty-form').innerHTML;
+
+        function updateVariantOptions(row) {
+            const productSelect = row.querySelector('.combo-product-select');
+            const variantSelect = row.querySelector('.combo-variant-select');
+            if (!productSelect || !variantSelect) return;
+
+            const currentValue = variantSelect.value;
+            const options = variantData[productSelect.value] || [];
+            variantSelect.innerHTML = '<option value="">Select variant</option>';
+
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.id;
+                option.textContent = opt.label;
+                variantSelect.appendChild(option);
+            });
+
+            if (currentValue) {
+                variantSelect.value = currentValue;
+            }
+        }
+
+        function bindRow(row) {
+            const productSelect = row.querySelector('.combo-product-select');
+            if (productSelect) {
+                productSelect.addEventListener('change', () => updateVariantOptions(row));
+                updateVariantOptions(row);
+            }
+        }
+
+        container.querySelectorAll('.combo-item-row').forEach(bindRow);
+
+        document.getElementById('add-combo-item').addEventListener('click', function() {
+            const formIndex = parseInt(totalFormsInput.value, 10);
+            const newFormHtml = emptyTemplate.replace(/__prefix__/g, formIndex);
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = newFormHtml.trim();
+            const newRow = wrapper.firstElementChild;
+
+            container.appendChild(newRow);
+            totalFormsInput.value = formIndex + 1;
+
+            bindRow(newRow);
+        });
+    })();
+</script>
+{% endblock %}
 {% endblock %}
