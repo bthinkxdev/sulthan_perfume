@@ -14,7 +14,7 @@ from .forms import (
 )
 
 
-@staff_member_required
+# @staff_member_required
 def admin_dashboard(request):
     """Main admin dashboard with statistics"""
     context = {
@@ -31,7 +31,7 @@ def admin_dashboard(request):
 
 # ============= PRODUCT MANAGEMENT =============
 
-@staff_member_required
+# @staff_member_required
 def product_list(request):
     """List all products with search and filter"""
     products = Product.objects.all()
@@ -66,7 +66,7 @@ def product_list(request):
     return render(request, 'admin_dashboard/product_list.html', context)
 
 
-@staff_member_required
+# @staff_member_required
 def product_create(request):
     """Create a new product"""
     base_product = Product()
@@ -95,7 +95,7 @@ def product_create(request):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def product_edit(request, pk):
     """Edit an existing product"""
     product = get_object_or_404(Product, pk=pk)
@@ -125,7 +125,7 @@ def product_edit(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def product_detail(request, pk):
     """View product details with variants"""
     product = get_object_or_404(Product, pk=pk)
@@ -137,7 +137,7 @@ def product_detail(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def product_delete(request, pk):
     """Delete a product"""
     product = get_object_or_404(Product, pk=pk)
@@ -155,7 +155,7 @@ def product_delete(request, pk):
 
 # ============= VARIANT MANAGEMENT =============
 
-@staff_member_required
+# @staff_member_required
 def variant_create(request, product_pk):
     """Create a new variant for a product"""
     product = get_object_or_404(Product, pk=product_pk)
@@ -178,7 +178,7 @@ def variant_create(request, product_pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def variant_edit(request, pk):
     """Edit a variant"""
     variant = get_object_or_404(ProductVariant, pk=pk)
@@ -200,7 +200,7 @@ def variant_edit(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def variant_delete(request, pk):
     """Delete a variant"""
     variant = get_object_or_404(ProductVariant, pk=pk)
@@ -218,7 +218,7 @@ def variant_delete(request, pk):
 
 # ============= COMBO MANAGEMENT =============
 
-@staff_member_required
+# @staff_member_required
 def combo_list(request):
     """List all combos"""
     combos = Combo.objects.all()
@@ -250,7 +250,7 @@ def combo_list(request):
     return render(request, 'admin_dashboard/combo_list.html', context)
 
 
-@staff_member_required
+# @staff_member_required
 def combo_create(request):
     """Create a new combo"""
     if request.method == 'POST':
@@ -268,7 +268,7 @@ def combo_create(request):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def combo_edit(request, pk):
     """Edit a combo"""
     combo = get_object_or_404(Combo, pk=pk)
@@ -289,7 +289,7 @@ def combo_edit(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def combo_detail(request, pk):
     """View combo details"""
     combo = get_object_or_404(Combo, pk=pk)
@@ -301,7 +301,7 @@ def combo_detail(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def combo_delete(request, pk):
     """Delete a combo"""
     combo = get_object_or_404(Combo, pk=pk)
@@ -319,7 +319,7 @@ def combo_delete(request, pk):
 
 # ============= ORDER MANAGEMENT =============
 
-@staff_member_required
+# @staff_member_required
 def order_list(request):
     """List all orders"""
     orders = Order.objects.all()
@@ -352,7 +352,7 @@ def order_list(request):
     return render(request, 'admin_dashboard/order_list.html', context)
 
 
-@staff_member_required
+# @staff_member_required
 def order_detail(request, pk):
     """View order details"""
     order = get_object_or_404(Order, pk=pk)
@@ -375,7 +375,7 @@ def order_detail(request, pk):
     })
 
 
-@staff_member_required
+# @staff_member_required
 def order_delete(request, pk):
     """Delete an order"""
     order = get_object_or_404(Order, pk=pk)
