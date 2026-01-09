@@ -1,4 +1,5 @@
 {% extends 'store/base.html' %}
+{% load static %}
 
 {% block title %}Sulthan Fragrance - Premium Perfumes from France & Arabia{% endblock %}
 
@@ -14,6 +15,25 @@
         overflow: hidden;
         padding: 110px var(--page-padding) 90px;
         isolation: isolate;
+        background: linear-gradient(180deg, rgba(44, 33, 26, 0.55), rgba(44, 33, 26, 0.32)), url("{% static 'banner.jpeg' %}") center/cover no-repeat;
+    }
+
+    .hero-banner {
+        display: none;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto 24px;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        background: #ffffff;
+    }
+
+    .hero-banner img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
     }
 
     .hero::after {
@@ -405,7 +425,7 @@
         box-shadow: 0 18px 42px rgba(26, 18, 12, 0.14);
     }
 
-    .combo-card::before {
+    {% comment %} .combo-card::before {
         content: '';
         position: absolute;
         top: 0;
@@ -414,7 +434,7 @@
         height: 5px;
         background: linear-gradient(90deg, #c46f44 0%, #f4c29a 100%);
         opacity: 0.9;
-    }
+    } {% endcomment %}
 
     .combo-images {
         display: grid;
@@ -613,7 +633,37 @@
 
     @media (max-width: 768px) {
         .hero {
-            padding: 80px var(--page-padding) 60px;
+            padding: 36px var(--page-padding) 52px;
+            background: var(--bg-soft);
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .hero-product {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .hero-product-card {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .hero-banner {
+            display: block;
+            order: 1;
+        }
+
+        .hero-text {
+            order: 2;
+        }
+
+        .hero-product {
+            order: 3;
         }
 
         .hero-text h1 {
@@ -736,7 +786,7 @@
 
         .hero-product-card {
             width: 100%;
-            max-width: 340px;
+            max-width: 100%;
             gap: 12px;
         }
 
@@ -852,6 +902,9 @@
         <span class="pill p4"></span>
     </div>
     <div class="hero-content">
+        <div class="hero-banner">
+            <img src="{% static 'banner.jpeg' %}" alt="Sulthan Fragrance banner">
+        </div>
         <div class="hero-text">
             <h1>12 Hours<br>Minimum Lasting<br>Guarantee</h1>
             <p>Our perfume oil is a blend of 100% pure Provence (France) grown essential oils</p>
@@ -899,7 +952,7 @@
             <div class="product-card fade-in" onclick="window.location.href='{% url 'store:product_detail' product.slug %}'">
                 <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
                 <div class="product-info">
-                    <span class="product-origin">{{ product.get_origin_display }}</span>
+                    {% comment %} <span class="product-origin">{{ product.get_origin_display }}</span> {% endcomment %}
                     {% with first_variant=product.variants.all|first %}
                         <div class="product-head">
                             <h3 class="product-name">{{ product.name }}</h3>
@@ -949,20 +1002,20 @@
                         {% comment %} <div class="combo-image-label">Combo cover</div> {% endcomment %}
                     </div>
                 </div>
-
+{% comment %} 
                 <div class="combo-products">
                     {% for item in combo.combo_products.all %}
                     <span class="combo-product-tag" style="font-size:12px; padding:4px 8px; line-height:1.2;">
                         {{ item.product.name }} • {{ item.variant.ml }}ml
                     </span>
                     {% endfor %}
-                </div>
+                </div> {% endcomment %}
 
-                <div class="combo-pricing">
+                {% comment %} <div class="combo-pricing">
                     <span class="combo-original-price">₹{{ combo.original_price }}</span>
                     <span class="combo-price">₹{{ combo.discounted_price|floatformat:0 }}</span>
                     <span class="combo-discount">-{{ combo.discount_percentage }}%</span>
-                </div>
+                </div> {% endcomment %}
 
                 <button class="btn-primary" style="width: 100%;" onclick="event.stopPropagation(); addToCart('{{ combo.id }}', 'combo', '{{ combo.title }}', '{{ combo.discounted_price }}', '{% if combo.image %}{{ combo.image.url }}{% elif first_item and first_item.product.image %}{{ first_item.product.image.url }}{% endif %}')">Add Combo to Cart</button>
             </div>
