@@ -922,7 +922,7 @@
                         <img src="{{ featured_product.image.url }}" alt="{{ featured_product.name }}" class="hero-product-image">
                     </div>
                     <div class="hero-product-info">
-                        <span class="product-origin">{{ featured_product.get_origin_display }}</span>
+                        {% comment %} <span class="product-origin">{{ featured_product.get_origin_display }}</span> {% endcomment %}
                         <div class="hero-product-head">
                             <h3 class="product-name">{{ featured_product.name }}</h3>
                             <span class="product-price">
