@@ -77,6 +77,46 @@
 
                     <h6>Delivery Address</h6>
                     <p class="mb-0">{{ order.address_line }}</p>
+                    
+                    <hr>
+                    
+                    <h6>Payment Information</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">Payment Status:</th>
+                            <td>
+                                {% if order.payment_status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif order.payment_status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif order.payment_status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% elif order.payment_status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ order.payment_status|title }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if order.razorpay_order_id %}
+                        <tr>
+                            <th>Razorpay Order ID:</th>
+                            <td><code>{{ order.razorpay_order_id }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if order.razorpay_payment_id %}
+                        <tr>
+                            <th>Razorpay Payment ID:</th>
+                            <td><code>{{ order.razorpay_payment_id }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if order.payment_reference %}
+                        <tr>
+                            <th>Payment Reference:</th>
+                            <td><code>{{ order.payment_reference }}</code></td>
+                        </tr>
+                        {% endif %}
+                    </table>
                 </div>
             </div>
 

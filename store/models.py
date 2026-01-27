@@ -249,6 +249,11 @@ class Order(models.Model):
         ('cancelled', 'Cancelled'),
     ])
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Razorpay specific fields
+    razorpay_order_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
 
     customer_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)

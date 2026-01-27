@@ -318,6 +318,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <script>
     let checkoutCartItems = [];
 
@@ -453,7 +456,7 @@
 
         const btn = document.getElementById('placeOrderBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading"></span> Processing...';
+        btn.innerHTML = '<span class="loading"></span> Creating Order...';
 
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
@@ -465,7 +468,8 @@
         };
 
         try {
-            const response = await fetch('{% url "store:place_order" %}', {
+            // Step 1: Create Razorpay order
+            const response = await fetch('{% url "store:create_razorpay_order" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -477,7 +481,91 @@
 
             const result = await response.json();
 
+            if (!result.success) {
+                alert('Error: ' + (result.error || 'Failed to create order'));
+                btn.disabled = false;
+                btn.textContent = 'Place Order';
+                return;
+            }
+
+            // Step 2: Open Razorpay checkout
+            btn.innerHTML = '<span class="loading"></span> Opening Payment Gateway...';
+            
+            const options = {
+                key: result.razorpay_key_id,
+                amount: result.amount,
+                currency: result.currency,
+                name: '{{ site_config.site_name }}',
+                description: 'Order Payment',
+                order_id: result.razorpay_order_id,
+                prefill: {
+                    name: result.customer_name,
+                    email: result.customer_email,
+                    contact: result.customer_phone
+                },
+                theme: {
+                    color: '#C46F44'
+                },
+                handler: async function(response) {
+                    // Step 3: Payment successful - verify on backend
+                    await verifyPayment(response, result.order_number);
+                },
+                modal: {
+                    ondismiss: async function() {
+                        // Payment modal closed - mark as failed
+                        console.log('Payment cancelled by user');
+                        await handlePaymentFailure(result.razorpay_order_id);
+                        btn.disabled = false;
+                        btn.textContent = 'Place Order';
+                        alert('Payment cancelled. Please try again.');
+                    }
+                }
+            };
+
+            const razorpayCheckout = new Razorpay(options);
+            
+            razorpayCheckout.on('payment.failed', async function(response) {
+                // Payment failed
+                console.error('Payment failed:', response.error);
+                await handlePaymentFailure(result.razorpay_order_id);
+                btn.disabled = false;
+                btn.textContent = 'Place Order';
+                alert('Payment failed: ' + response.error.description);
+            });
+
+            razorpayCheckout.open();
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to initiate payment. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Place Order';
+        }
+    }
+
+    async function verifyPayment(paymentResponse, orderNumber) {
+        const btn = document.getElementById('placeOrderBtn');
+        btn.innerHTML = '<span class="loading"></span> Verifying Payment...';
+
+        try {
+            const response = await fetch('{% url "store:verify_payment" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    razorpay_order_id: paymentResponse.razorpay_order_id,
+                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                    razorpay_signature: paymentResponse.razorpay_signature
+                })
+            });
+
+            const result = await response.json();
+
             if (result.success) {
+                // Payment verified successfully
                 // Clear cart
                 sessionStorage.removeItem('cart');
                 window.dispatchEvent(new Event('cart-updated'));
@@ -485,15 +573,33 @@
                 // Redirect to confirmation
                 window.location.href = '{% url "store:order_confirmation" "ORDER_NUMBER" %}'.replace('ORDER_NUMBER', result.order_number);
             } else {
-                alert('Error: ' + (result.error || 'Something went wrong'));
+                alert('Payment verification failed: ' + (result.error || 'Unknown error'));
                 btn.disabled = false;
                 btn.textContent = 'Place Order';
             }
         } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to place order. Please try again.');
+            console.error('Error verifying payment:', error);
+            alert('Failed to verify payment. Please contact support with your payment ID.');
             btn.disabled = false;
             btn.textContent = 'Place Order';
+        }
+    }
+
+    async function handlePaymentFailure(razorpayOrderId) {
+        try {
+            await fetch('{% url "store:payment_failed" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    razorpay_order_id: razorpayOrderId
+                })
+            });
+        } catch (error) {
+            console.error('Error handling payment failure:', error);
         }
     }
 

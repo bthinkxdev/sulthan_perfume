@@ -495,7 +495,7 @@ def combo_delete(request, pk):
 # @staff_member_required
 def order_list(request):
     """List all orders"""
-    orders = Order.objects.all()
+    orders = Order.objects.all().order_by('-created_at')
     
     # Search
     search_query = request.GET.get('search', '')
@@ -503,24 +503,42 @@ def order_list(request):
         orders = orders.filter(
             Q(order_number__icontains=search_query) |
             Q(customer_name__icontains=search_query) |
-            Q(phone__icontains=search_query)
+            Q(phone__icontains=search_query) |
+            Q(razorpay_payment_id__icontains=search_query) |
+            Q(razorpay_order_id__icontains=search_query)
         )
     
-    # Filter by status
+    # Filter by order status
     status_filter = request.GET.get('status', '')
     if status_filter:
         orders = orders.filter(status=status_filter)
+    
+    # Filter by payment status
+    payment_status_filter = request.GET.get('payment_status', '')
+    if payment_status_filter:
+        orders = orders.filter(payment_status=payment_status_filter)
     
     # Pagination
     paginator = Paginator(orders, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Payment status choices
+    payment_status_choices = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
         'status_filter': status_filter,
+        'payment_status_filter': payment_status_filter,
         'status_choices': Order.ORDER_STATUS,
+        'payment_status_choices': payment_status_choices,
     }
     return render(request, 'admin_dashboard/order_list.html', context)
 
