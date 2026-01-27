@@ -1,0 +1,206 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Privacy Policy - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .page-title {
+        font-family: var(--font-heading);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .legal-content {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 48px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .legal-content h2 {
+        font-family: var(--font-heading);
+        font-size: 28px;
+        color: var(--primary);
+        margin-top: 36px;
+        margin-bottom: 16px;
+    }
+
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+
+    .legal-content h3 {
+        font-family: var(--font-heading);
+        font-size: 20px;
+        color: var(--primary);
+        margin-top: 28px;
+        margin-bottom: 12px;
+    }
+
+    .legal-content p {
+        color: var(--text-main);
+        line-height: 1.8;
+        margin-bottom: 16px;
+        font-size: 15px;
+    }
+
+    .legal-content ul, .legal-content ol {
+        margin-left: 24px;
+        margin-bottom: 16px;
+        color: var(--text-main);
+        line-height: 1.8;
+    }
+
+    .legal-content li {
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .last-updated {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-style: italic;
+        margin-bottom: 32px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .legal-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .legal-content {
+            padding: 32px 24px;
+        }
+
+        .page-title {
+            font-size: 32px;
+        }
+
+        .legal-content h2 {
+            font-size: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="legal-container">
+        <h1 class="page-title">Privacy Policy</h1>
+        <p class="last-updated">Last Updated: January 2025</p>
+        
+        <div class="legal-content">
+            <h2>1. Introduction</h2>
+            <p>Welcome to Sulthan Fragrance ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and make purchases through our platform.</p>
+
+            <h2>2. Information We Collect</h2>
+            <h3>2.1 Personal Information</h3>
+            <p>We collect information that you provide directly to us, including:</p>
+            <ul>
+                <li>Name and contact information (email address, phone number)</li>
+                <li>Shipping and billing addresses</li>
+                <li>Payment information (processed securely through Razorpay)</li>
+                <li>Order history and preferences</li>
+            </ul>
+
+            <h3>2.2 Automatically Collected Information</h3>
+            <p>When you visit our website, we automatically collect certain information, including:</p>
+            <ul>
+                <li>IP address and browser type</li>
+                <li>Device information</li>
+                <li>Pages visited and time spent on pages</li>
+                <li>Referring website addresses</li>
+            </ul>
+
+            <h2>3. How We Use Your Information</h2>
+            <p>We use the information we collect to:</p>
+            <ul>
+                <li>Process and fulfill your orders</li>
+                <li>Communicate with you about your orders, products, and services</li>
+                <li>Send you OTP codes for authentication</li>
+                <li>Improve our website and customer experience</li>
+                <li>Detect and prevent fraud</li>
+                <li>Comply with legal obligations</li>
+            </ul>
+
+            <h2>4. Payment Processing</h2>
+            <p>We use Razorpay, a secure payment gateway, to process all payments. When you make a purchase:</p>
+            <ul>
+                <li>Your payment information is securely transmitted to Razorpay</li>
+                <li>We do not store your complete credit card or debit card details</li>
+                <li>Razorpay handles all payment processing in compliance with PCI DSS standards</li>
+                <li>Your payment data is encrypted and protected by Razorpay's security measures</li>
+            </ul>
+            <p>For more information about Razorpay's privacy practices, please visit: <a href="https://razorpay.com/privacy/" target="_blank" rel="noopener">https://razorpay.com/privacy/</a></p>
+
+            <h2>5. Information Sharing and Disclosure</h2>
+            <p>We do not sell your personal information. We may share your information only in the following circumstances:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> We share information with third-party service providers, including Razorpay for payment processing, shipping companies for order fulfillment, and email service providers for communications.</li>
+                <li><strong>Legal Requirements:</strong> We may disclose information if required by law or in response to valid legal requests.</li>
+                <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of assets, your information may be transferred.</li>
+            </ul>
+
+            <h2>6. Data Security</h2>
+            <p>We implement appropriate technical and organizational measures to protect your personal information:</p>
+            <ul>
+                <li>SSL encryption for data transmission</li>
+                <li>Secure payment processing through Razorpay</li>
+                <li>Regular security assessments and updates</li>
+                <li>Limited access to personal information on a need-to-know basis</li>
+            </ul>
+            <p>However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.</p>
+
+            <h2>7. Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li>Access your personal information</li>
+                <li>Correct inaccurate information</li>
+                <li>Request deletion of your information</li>
+                <li>Opt-out of marketing communications</li>
+                <li>Withdraw consent for data processing</li>
+            </ul>
+            <p>To exercise these rights, please contact us at {{ site_config.email }}.</p>
+
+            <h2>8. Cookies and Tracking Technologies</h2>
+            <p>We use cookies and similar tracking technologies to enhance your browsing experience, analyze website traffic, and personalize content. You can control cookies through your browser settings.</p>
+
+            <h2>9. Third-Party Links</h2>
+            <p>Our website may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review their privacy policies.</p>
+
+            <h2>10. Children's Privacy</h2>
+            <p>Our services are not directed to individuals under the age of 18. We do not knowingly collect personal information from children.</p>
+
+            <h2>11. Changes to This Privacy Policy</h2>
+            <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+
+            <h2>12. Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> {{ site_config.email }}</li>
+                <li><strong>Phone:</strong> {{ site_config.phone }}</li>
+                <li><strong>Location:</strong> {{ site_config.location }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

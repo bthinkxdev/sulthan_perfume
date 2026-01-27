@@ -1,0 +1,629 @@
+<!-- OTP Login Modal -->
+<div id="otpLoginModal" class="otp-modal" style="display: none;">
+    <div class="otp-modal-backdrop" onclick="closeOTPModal()"></div>
+    <div class="otp-modal-content">
+        <button class="otp-modal-close" onclick="closeOTPModal()" aria-label="Close">×</button>
+        
+        <div class="otp-modal-header">
+            <h2>Login to Continue</h2>
+            <p>Enter your email to receive a one-time password</p>
+        </div>
+
+        <!-- Step 1: Email Input -->
+        <div id="otpEmailStep" class="otp-step">
+            <form id="otpEmailForm" onsubmit="sendOTP(event)">
+                <div class="otp-form-group">
+                    <label for="otpEmail">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="otpEmail" 
+                        name="email" 
+                        placeholder="your@email.com" 
+                        required
+                        autocomplete="email"
+                        oninput="validateEmailInput()"
+                    >
+                    <span class="otp-error" id="otpEmailError"></span>
+                </div>
+                
+                <button type="submit" class="otp-btn-primary" id="otpSendBtn" disabled>
+                    <span id="otpSendBtnText">Send OTP</span>
+                    <span id="otpSendBtnLoader" class="otp-loader" style="display: none;"></span>
+                </button>
+            </form>
+            
+            <div class="otp-rate-limit" id="otpRateLimit" style="display: none;">
+                <p>Please wait <span id="otpRateLimitSeconds">0</span> seconds before requesting another OTP</p>
+            </div>
+        </div>
+
+        <!-- Step 2: OTP Verification -->
+        <div id="otpVerifyStep" class="otp-step" style="display: none;">
+            <div class="otp-sent-message">
+                <i class="fas fa-envelope"></i>
+                <p>OTP sent to <strong id="otpSentEmail"></strong></p>
+                <p class="otp-expiry">Valid for 10 minutes</p>
+            </div>
+            
+            <form id="otpVerifyForm" onsubmit="verifyOTP(event)">
+                <div class="otp-form-group">
+                    <label for="otpCode">Enter OTP</label>
+                    <div class="otp-input-container">
+                        <input 
+                            type="text" 
+                            id="otpCode" 
+                            name="otp" 
+                            placeholder="0000" 
+                            maxlength="4"
+                            pattern="[0-9]{4}"
+                            required
+                            autocomplete="one-time-code"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        >
+                    </div>
+                    <span class="otp-error" id="otpCodeError"></span>
+                </div>
+                
+                <button type="submit" class="otp-btn-primary" id="otpVerifyBtn">
+                    <span id="otpVerifyBtnText">Verify & Login</span>
+                    <span id="otpVerifyBtnLoader" class="otp-loader" style="display: none;"></span>
+                </button>
+            </form>
+            
+            <div class="otp-resend">
+                <p>Didn't receive the OTP?</p>
+                <button type="button" class="otp-btn-link" onclick="resendOTP()" id="otpResendBtn">
+                    Resend OTP
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .otp-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .otp-modal-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+    }
+
+    .otp-modal-content {
+        position: relative;
+        background: var(--card-strong, #ffffff);
+        border-radius: 16px;
+        padding: 40px;
+        max-width: 450px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg, 0 22px 60px rgba(36, 23, 15, 0.2));
+        animation: otpModalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes otpModalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .otp-modal-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 32px;
+        color: var(--text-muted, #7c6c64);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: var(--transition-smooth, all 0.26s ease);
+    }
+
+    .otp-modal-close:hover {
+        background: var(--bg-soft, #fff4e8);
+        color: var(--text-main, #2c211a);
+    }
+
+    .otp-modal-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .otp-modal-header h2 {
+        font-size: 28px;
+        color: var(--primary, #2c211a);
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .otp-modal-header p {
+        color: var(--text-muted, #7c6c64);
+        font-size: 14px;
+    }
+
+    .otp-form-group {
+        margin-bottom: 24px;
+    }
+
+    .otp-form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-main, #2c211a);
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .otp-form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid var(--border, #efdfd3);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: var(--transition-smooth, all 0.26s ease);
+        background: var(--white, #ffffff);
+        color: var(--text-main, #2c211a);
+    }
+
+    .otp-form-group input:focus {
+        outline: none;
+        border-color: var(--primary, #2c211a);
+        box-shadow: 0 0 0 3px rgba(44, 33, 26, 0.1);
+    }
+
+    .otp-form-group input:valid {
+        border-color: #10b981;
+    }
+
+    .otp-input-container {
+        display: flex;
+        justify-content: center;
+    }
+
+    .otp-input-container input {
+        text-align: center;
+        font-size: 32px;
+        letter-spacing: 12px;
+        font-weight: 600;
+        max-width: 200px;
+    }
+
+    .otp-error {
+        display: block;
+        color: #ef4444;
+        font-size: 12px;
+        margin-top: 6px;
+        min-height: 18px;
+    }
+
+    .otp-btn-primary {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--primary, #2c211a), var(--primary-strong, #1a140f));
+        color: var(--white, #ffffff);
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-smooth, all 0.26s ease);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .otp-btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(44, 33, 26, 0.3);
+    }
+
+    .otp-btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .otp-btn-link {
+        background: none;
+        border: none;
+        color: var(--primary, #2c211a);
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+    }
+
+    .otp-btn-link:hover {
+        color: var(--primary-strong, #1a140f);
+    }
+
+    .otp-loader {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: var(--white, #ffffff);
+        border-radius: 50%;
+        animation: otpSpin 0.6s linear infinite;
+    }
+
+    @keyframes otpSpin {
+        to { transform: rotate(360deg); }
+    }
+
+    .otp-sent-message {
+        text-align: center;
+        padding: 20px;
+        background: var(--bg-soft, #fff4e8);
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+
+    .otp-sent-message i {
+        font-size: 48px;
+        color: var(--primary, #2c211a);
+        margin-bottom: 12px;
+    }
+
+    .otp-sent-message p {
+        margin: 4px 0;
+        color: var(--text-main, #2c211a);
+    }
+
+    .otp-expiry {
+        font-size: 12px;
+        color: var(--text-muted, #7c6c64);
+    }
+
+    .otp-resend {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border, #efdfd3);
+    }
+
+    .otp-resend p {
+        color: var(--text-muted, #7c6c64);
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .otp-rate-limit {
+        margin-top: 16px;
+        padding: 12px;
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .otp-rate-limit p {
+        color: #856404;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    @media (max-width: 640px) {
+        .otp-modal-content {
+            padding: 24px;
+            width: 95%;
+        }
+
+        .otp-modal-header h2 {
+            font-size: 24px;
+        }
+
+        .otp-input-container input {
+            font-size: 28px;
+            letter-spacing: 8px;
+        }
+    }
+</style>
+
+<script>
+    let otpEmailValue = '';
+    let otpNextUrl = '/';
+    let rateLimitInterval = null;
+
+    function openOTPModal(nextUrl = '/') {
+        otpNextUrl = nextUrl;
+        document.getElementById('otpLoginModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('otpEmail').focus();
+    }
+
+    function closeOTPModal() {
+        document.getElementById('otpLoginModal').style.display = 'none';
+        document.body.style.overflow = '';
+        resetOTPModal();
+    }
+
+    function resetOTPModal() {
+        document.getElementById('otpEmailStep').style.display = 'block';
+        document.getElementById('otpVerifyStep').style.display = 'none';
+        document.getElementById('otpEmailForm').reset();
+        document.getElementById('otpVerifyForm').reset();
+        document.getElementById('otpEmailError').textContent = '';
+        document.getElementById('otpCodeError').textContent = '';
+        document.getElementById('otpRateLimit').style.display = 'none';
+        otpEmailValue = '';
+        if (rateLimitInterval) {
+            clearInterval(rateLimitInterval);
+            rateLimitInterval = null;
+        }
+    }
+
+    function validateEmailInput() {
+        const emailInput = document.getElementById('otpEmail');
+        const emailError = document.getElementById('otpEmailError');
+        const sendBtn = document.getElementById('otpSendBtn');
+        const email = emailInput.value.trim().toLowerCase();
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (email && emailRegex.test(email)) {
+            emailError.textContent = '';
+            sendBtn.disabled = false;
+        } else if (email) {
+            emailError.textContent = 'Please enter a valid email address';
+            sendBtn.disabled = true;
+        } else {
+            emailError.textContent = '';
+            sendBtn.disabled = true;
+        }
+    }
+
+    async function sendOTP(event) {
+        event.preventDefault();
+        
+        const emailInput = document.getElementById('otpEmail');
+        const email = emailInput.value.trim().toLowerCase();
+        const sendBtn = document.getElementById('otpSendBtn');
+        const sendBtnText = document.getElementById('otpSendBtnText');
+        const sendBtnLoader = document.getElementById('otpSendBtnLoader');
+        const emailError = document.getElementById('otpEmailError');
+        const rateLimitDiv = document.getElementById('otpRateLimit');
+        
+        if (!email) {
+            emailError.textContent = 'Email is required';
+            return;
+        }
+        
+        sendBtn.disabled = true;
+        sendBtnText.style.display = 'none';
+        sendBtnLoader.style.display = 'block';
+        emailError.textContent = '';
+        rateLimitDiv.style.display = 'none';
+        
+        try {
+            // Get CSRF token - try multiple methods
+            let csrfToken = getCookie('csrftoken');
+            if (!csrfToken) {
+                // Try to get from meta tag if available
+                const metaTag = document.querySelector('meta[name=csrf-token]');
+                if (metaTag) {
+                    csrfToken = metaTag.getAttribute('content');
+                }
+            }
+            
+            if (!csrfToken) {
+                emailError.textContent = 'CSRF token not found. Please refresh the page.';
+                sendBtn.disabled = false;
+                sendBtnText.style.display = 'block';
+                sendBtnLoader.style.display = 'none';
+                return;
+            }
+            
+            const response = await fetch('{% url "store:send_otp" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ email: email })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                otpEmailValue = email;
+                document.getElementById('otpSentEmail').textContent = email;
+                document.getElementById('otpEmailStep').style.display = 'none';
+                document.getElementById('otpVerifyStep').style.display = 'block';
+                document.getElementById('otpCode').focus();
+            } else {
+                emailError.textContent = data.error || 'Failed to send OTP';
+                
+                if (response.status === 429) {
+                    // Rate limited - extract remaining seconds if available
+                    const match = data.error.match(/(\d+)\s+seconds/);
+                    if (match) {
+                        startRateLimitCountdown(parseInt(match[1]));
+                    }
+                }
+            }
+        } catch (error) {
+            emailError.textContent = 'Network error. Please try again.';
+        } finally {
+            sendBtn.disabled = false;
+            sendBtnText.style.display = 'block';
+            sendBtnLoader.style.display = 'none';
+        }
+    }
+
+    async function verifyOTP(event) {
+        event.preventDefault();
+        
+        const otpCode = document.getElementById('otpCode').value.trim();
+        const verifyBtn = document.getElementById('otpVerifyBtn');
+        const verifyBtnText = document.getElementById('otpVerifyBtnText');
+        const verifyBtnLoader = document.getElementById('otpVerifyBtnLoader');
+        const codeError = document.getElementById('otpCodeError');
+        
+        if (otpCode.length !== 4) {
+            codeError.textContent = 'Please enter a 4-digit OTP';
+            return;
+        }
+        
+        verifyBtn.disabled = true;
+        verifyBtnText.style.display = 'none';
+        verifyBtnLoader.style.display = 'block';
+        codeError.textContent = '';
+        
+        try {
+            // Get CSRF token - try multiple methods
+            let csrfToken = getCookie('csrftoken');
+            if (!csrfToken) {
+                // Try to get from meta tag if available
+                const metaTag = document.querySelector('meta[name=csrf-token]');
+                if (metaTag) {
+                    csrfToken = metaTag.getAttribute('content');
+                }
+            }
+            
+            if (!csrfToken) {
+                codeError.textContent = 'CSRF token not found. Please refresh the page.';
+                verifyBtn.disabled = false;
+                verifyBtnText.style.display = 'block';
+                verifyBtnLoader.style.display = 'none';
+                return;
+            }
+            
+            const response = await fetch('{% url "store:verify_otp" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ 
+                    email: otpEmailValue,
+                    otp: otpCode,
+                    next: otpNextUrl
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Success - reload page or redirect
+                if (data.next) {
+                    window.location.href = data.next;
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                codeError.textContent = data.error || 'Invalid OTP';
+                document.getElementById('otpCode').value = '';
+            }
+        } catch (error) {
+            codeError.textContent = 'Network error. Please try again.';
+        } finally {
+            verifyBtn.disabled = false;
+            verifyBtnText.style.display = 'block';
+            verifyBtnLoader.style.display = 'none';
+        }
+    }
+
+    async function resendOTP() {
+        const resendBtn = document.getElementById('otpResendBtn');
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Sending...';
+        
+        // Switch back to email step
+        document.getElementById('otpVerifyStep').style.display = 'none';
+        document.getElementById('otpEmailStep').style.display = 'block';
+        document.getElementById('otpEmail').value = otpEmailValue;
+        document.getElementById('otpEmail').focus();
+        
+        // Trigger send
+        await sendOTP(new Event('submit'));
+        
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend OTP';
+    }
+
+    function startRateLimitCountdown(seconds) {
+        const rateLimitDiv = document.getElementById('otpRateLimit');
+        const rateLimitSeconds = document.getElementById('otpRateLimitSeconds');
+        rateLimitDiv.style.display = 'block';
+        
+        let remaining = seconds;
+        rateLimitSeconds.textContent = remaining;
+        
+        if (rateLimitInterval) {
+            clearInterval(rateLimitInterval);
+        }
+        
+        rateLimitInterval = setInterval(() => {
+            remaining--;
+            rateLimitSeconds.textContent = remaining;
+            
+            if (remaining <= 0) {
+                clearInterval(rateLimitInterval);
+                rateLimitInterval = null;
+                rateLimitDiv.style.display = 'none';
+            }
+        }, 1000);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        
+        // If cookie not found, try to get from meta tag
+        if (!cookieValue) {
+            const metaTag = document.querySelector('meta[name=csrf-token]');
+            if (metaTag) {
+                cookieValue = metaTag.getAttribute('content');
+            }
+        }
+        
+        return cookieValue;
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('otpLoginModal');
+            if (modal && modal.style.display !== 'none') {
+                closeOTPModal();
+            }
+        }
+    });
+</script>
+

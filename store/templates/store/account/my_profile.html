@@ -1,0 +1,59 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}My Profile - {{ site_config.site_name }}{% endblock %}
+
+{% block content %}
+<section style="padding: 100px var(--page-padding) 60px; min-height: 80vh;">
+    <div style="max-width: 800px; margin: 0 auto;">
+        <h1 style="font-size: 36px; margin-bottom: 32px; color: var(--primary);">My Profile</h1>
+        
+        <div style="background: var(--card-strong); padding: 32px; border-radius: 12px; box-shadow: var(--shadow-sm);">
+            <form id="profileForm" onsubmit="updateProfile(event)">
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Email</label>
+                    <input type="email" value="{{ user.email }}" disabled style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-soft);">
+                    <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">Email cannot be changed</p>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Name</label>
+                    <input type="text" id="profileName" value="{{ user.name|default:'' }}" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px;">
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Phone</label>
+                    <input type="tel" id="profilePhone" value="{{ user.phone|default:'' }}" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px;">
+                </div>
+                
+                <button type="submit" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;">Update Profile</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+async function updateProfile(event) {
+    event.preventDefault();
+    const name = document.getElementById('profileName').value;
+    const phone = document.getElementById('profilePhone').value;
+    
+    const response = await fetch('{% url "store:update_profile" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CartAPI.getCSRFToken()
+        },
+        body: JSON.stringify({ name, phone })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        CartAPI.showNotification('Profile updated successfully');
+    } else {
+        CartAPI.showNotification(data.error || 'Failed to update profile', 'error');
+    }
+}
+</script>
+{% endblock %}
+

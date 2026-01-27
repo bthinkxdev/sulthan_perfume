@@ -3,7 +3,12 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.utils.text import slugify
 from django.utils import timezone
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.hashers import make_password
+from django.core.validators import EmailValidator
 import uuid
+import secrets
+from datetime import timedelta
 
 
 class Product(models.Model):
@@ -189,6 +194,22 @@ class Order(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order_number = models.CharField(max_length=20, unique=True, editable=False)
+    
+    # Link to user if authenticated (optional for backward compatibility)
+    user = models.ForeignKey('User', related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Link to cart (for payment tracking)
+    cart = models.ForeignKey('Cart', related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Payment fields
+    payment_status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ])
+    payment_reference = models.CharField(max_length=255, blank=True, null=True)
 
     customer_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
@@ -271,3 +292,248 @@ class SiteConfig(models.Model):
 
     def __str__(self):
         return self.site_name
+
+
+# Authentication Models
+class UserManager(BaseUserManager):
+    """Custom user manager for email-based authentication"""
+    def create_user(self, email, name=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, name=name, **extra_fields)
+        # Set an unusable password since we use OTP
+        user.set_unusable_password()
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, name=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, name, **extra_fields)
+
+
+class User(AbstractBaseUser):
+    """Custom user model with email as primary identifier"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True, validators=[EmailValidator()])
+    name = models.CharField(max_length=100, blank=True, null=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    objects = UserManager()
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email']),
+        ]
+    
+    def __str__(self):
+        return self.email
+    
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+    
+    def has_module_perms(self, app_label):
+        return self.is_superuser
+
+
+class OTP(models.Model):
+    """OTP model for email-based authentication"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField()
+    otp_hash = models.CharField(max_length=255)  # Hashed OTP
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'is_used']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"OTP for {self.email} - {'Used' if self.is_used else 'Active'}"
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        return not self.is_used and not self.is_expired()
+    
+    @staticmethod
+    def generate_otp():
+        """Generate a 4-digit numeric OTP"""
+        return f"{secrets.randbelow(10000):04d}"
+    
+    @staticmethod
+    def create_otp(email, ip_address=None):
+        """Create a new OTP for the given email"""
+        # Invalidate old OTPs for this email
+        OTP.objects.filter(email=email, is_used=False).update(is_used=True)
+        
+        # Generate new OTP
+        otp_code = OTP.generate_otp()
+        otp_hash = make_password(otp_code)
+        
+        # Create OTP record
+        otp = OTP.objects.create(
+            email=email,
+            otp_hash=otp_hash,
+            expires_at=timezone.now() + timedelta(minutes=10),
+            ip_address=ip_address
+        )
+        
+        return otp, otp_code
+    
+    def verify(self, otp_code):
+        """Verify the provided OTP code"""
+        from django.contrib.auth.hashers import check_password
+        if self.is_valid() and check_password(otp_code, self.otp_hash):
+            self.is_used = True
+            self.save()
+            return True
+        return False
+
+
+class Address(models.Model):
+    """User address model"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='addresses', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    address_line = models.TextField()
+    city = models.CharField(max_length=50)
+    pincode = models.CharField(max_length=10)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-is_default', '-created_at']
+        verbose_name_plural = 'Addresses'
+    
+    def __str__(self):
+        return f"{self.name} - {self.city}"
+    
+    def save(self, *args, **kwargs):
+        # If this is set as default, unset other defaults for this user
+        if self.is_default:
+            Address.objects.filter(user=self.user, is_default=True).exclude(id=self.id).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
+class Cart(models.Model):
+    """Shopping cart model - one active cart per user"""
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('checked_out', 'Checked Out'),
+        ('abandoned', 'Abandoned'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='carts', on_delete=models.CASCADE, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+        ]
+    
+    def __str__(self):
+        if self.user:
+            return f"Cart for {self.user.email} - {self.status}"
+        return f"Guest Cart - {self.status}"
+    
+    def get_total(self):
+        """Calculate total cart amount"""
+        return sum(item.subtotal for item in self.items.all())
+    
+    def get_item_count(self):
+        """Get total number of items in cart"""
+        return sum(item.quantity for item in self.items.all())
+    
+    def get_or_create_active_cart(user=None):
+        """Get or create an active cart for a user"""
+        if user and user.is_authenticated:
+            cart, created = Cart.objects.get_or_create(
+                user=user,
+                status='active',
+                defaults={}
+            )
+            return cart, created
+        return None, False
+
+
+class CartItem(models.Model):
+    """Cart item model"""
+    ITEM_TYPE = [
+        ('product', 'Product'),
+        ('combo', 'Combo'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+    item_type = models.CharField(max_length=10, choices=ITEM_TYPE)
+    
+    # Product fields
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, null=True, blank=True, on_delete=models.CASCADE)
+    variant_ml = models.PositiveIntegerField(null=True, blank=True)
+    
+    # Combo fields
+    combo = models.ForeignKey(Combo, null=True, blank=True, on_delete=models.CASCADE)
+    
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    price_at_time = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(product__isnull=False) |
+                    models.Q(combo__isnull=False)
+                ),
+                name="cartitem_product_or_combo"
+            ),
+            models.UniqueConstraint(
+                fields=['cart', 'item_type', 'product', 'variant'],
+                condition=models.Q(item_type='product'),
+                name='unique_product_variant_in_cart'
+            ),
+            models.UniqueConstraint(
+                fields=['cart', 'item_type', 'combo'],
+                condition=models.Q(item_type='combo'),
+                name='unique_combo_in_cart'
+            ),
+        ]
+    
+    @property
+    def subtotal(self):
+        """Calculate subtotal for this item"""
+        return self.price_at_time * self.quantity
+    
+    def __str__(self):
+        if self.item_type == 'product':
+            return f"{self.product.name} ({self.variant.ml}ml) - Qty: {self.quantity}"
+        return f"{self.combo.title} - Qty: {self.quantity}"

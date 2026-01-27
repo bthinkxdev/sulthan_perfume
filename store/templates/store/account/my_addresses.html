@@ -1,0 +1,86 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}My Addresses - {{ site_config.site_name }}{% endblock %}
+
+{% block content %}
+<section style="padding: 100px var(--page-padding) 60px; min-height: 80vh;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <h1 style="font-size: 36px; margin-bottom: 32px; color: var(--primary);">My Addresses</h1>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px;">
+            {% for address in addresses %}
+            <div style="background: var(--card-strong); padding: 24px; border-radius: 12px; box-shadow: var(--shadow-sm); {% if address.is_default %}border: 2px solid var(--primary);{% endif %}">
+                {% if address.is_default %}
+                    <span style="display: inline-block; padding: 4px 12px; background: var(--primary); color: white; border-radius: 6px; font-size: 12px; margin-bottom: 12px;">Default</span>
+                {% endif %}
+                <h3 style="font-size: 18px; margin-bottom: 12px;">{{ address.name }}</h3>
+                <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                    {{ address.address_line }}<br>
+                    {{ address.city }}, {{ address.pincode }}<br>
+                    Phone: {{ address.phone }}
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="editAddress('{{ address.id }}')" style="padding: 8px 16px; background: var(--bg-soft); border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Edit</button>
+                    <button onclick="deleteAddress('{{ address.id }}')" style="padding: 8px 16px; background: #fee; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; color: #c00;">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <button onclick="showAddAddressForm()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;">+ Add New Address</button>
+    </div>
+</section>
+
+<script>
+function showAddAddressForm() {
+    // Simple implementation - can be enhanced with modal
+    const name = prompt('Name:');
+    if (!name) return;
+    const phone = prompt('Phone:');
+    if (!phone) return;
+    const address = prompt('Address:');
+    if (!address) return;
+    const city = prompt('City:');
+    if (!city) return;
+    const pincode = prompt('Pincode:');
+    if (!pincode) return;
+    
+    fetch('{% url "store:add_address" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CartAPI.getCSRFToken()
+        },
+        body: JSON.stringify({ name, phone, address_line: address, city, pincode })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+}
+
+function deleteAddress(id) {
+    if (!confirm('Delete this address?')) return;
+    fetch(`/api/address/${id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CartAPI.getCSRFToken()
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    });
+}
+</script>
+{% endblock %}
+

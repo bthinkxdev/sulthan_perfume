@@ -1,0 +1,273 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Terms and Conditions - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .page-title {
+        font-family: var(--font-heading);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .legal-content {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 48px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .legal-content h2 {
+        font-family: var(--font-heading);
+        font-size: 28px;
+        color: var(--primary);
+        margin-top: 36px;
+        margin-bottom: 16px;
+    }
+
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+
+    .legal-content h3 {
+        font-family: var(--font-heading);
+        font-size: 20px;
+        color: var(--primary);
+        margin-top: 28px;
+        margin-bottom: 12px;
+    }
+
+    .legal-content p {
+        color: var(--text-main);
+        line-height: 1.8;
+        margin-bottom: 16px;
+        font-size: 15px;
+    }
+
+    .legal-content ul, .legal-content ol {
+        margin-left: 24px;
+        margin-bottom: 16px;
+        color: var(--text-main);
+        line-height: 1.8;
+    }
+
+    .legal-content li {
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .last-updated {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-style: italic;
+        margin-bottom: 32px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .legal-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .legal-content {
+            padding: 32px 24px;
+        }
+
+        .page-title {
+            font-size: 32px;
+        }
+
+        .legal-content h2 {
+            font-size: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="legal-container">
+        <h1 class="page-title">Terms and Conditions</h1>
+        <p class="last-updated">Last Updated: January 2025</p>
+        
+        <div class="legal-content">
+            <h2>1. Acceptance of Terms</h2>
+            <p>By accessing and using the Sulthan Fragrance website ("Website") and making purchases through our platform, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, please do not use our services.</p>
+
+            <h2>2. Use of Website</h2>
+            <h3>2.1 Eligibility</h3>
+            <p>You must be at least 18 years old to use our services and make purchases. By using our website, you represent and warrant that you are of legal age.</p>
+
+            <h3>2.2 Account Registration</h3>
+            <p>To make purchases, you may need to create an account using your email address. You are responsible for:</p>
+            <ul>
+                <li>Maintaining the confidentiality of your account</li>
+                <li>All activities that occur under your account</li>
+                <li>Providing accurate and current information</li>
+            </ul>
+
+            <h3>2.3 Prohibited Activities</h3>
+            <p>You agree not to:</p>
+            <ul>
+                <li>Use the website for any illegal or unauthorized purpose</li>
+                <li>Attempt to gain unauthorized access to any part of the website</li>
+                <li>Interfere with or disrupt the website or servers</li>
+                <li>Use automated systems to access the website without permission</li>
+                <li>Impersonate any person or entity</li>
+            </ul>
+
+            <h2>3. Products and Pricing</h2>
+            <h3>3.1 Product Information</h3>
+            <p>We strive to provide accurate product descriptions, images, and pricing. However:</p>
+            <ul>
+                <li>Product images are for illustrative purposes and may not reflect exact colors or sizes</li>
+                <li>We reserve the right to correct any errors in pricing or product information</li>
+                <li>Product availability is subject to change</li>
+            </ul>
+
+            <h3>3.2 Pricing</h3>
+            <p>All prices are displayed in Indian Rupees (INR) and are inclusive of applicable taxes. Prices are subject to change without notice. The price charged at the time of order placement is the final price.</p>
+
+            <h3>3.3 Product Availability</h3>
+            <p>We reserve the right to limit quantities, refuse orders, or discontinue products at any time. If a product becomes unavailable after you place an order, we will notify you and process a full refund.</p>
+
+            <h2>4. Orders and Payment</h2>
+            <h3>4.1 Order Placement</h3>
+            <p>When you place an order:</p>
+            <ul>
+                <li>You make an offer to purchase products at the listed prices</li>
+                <li>We will send you an order confirmation email</li>
+                <li>Order acceptance occurs when we process payment and prepare your order for shipment</li>
+            </ul>
+
+            <h3>4.2 Payment Terms</h3>
+            <p>Payment must be made at the time of order placement. We accept the following payment methods through Razorpay:</p>
+            <ul>
+                <li>Credit Cards</li>
+                <li>Debit Cards</li>
+                <li>UPI</li>
+                <li>Net Banking</li>
+                <li>Digital Wallets</li>
+            </ul>
+
+            <h3>4.3 Payment Processing</h3>
+            <p>All payments are processed securely through Razorpay, a PCI DSS compliant payment gateway:</p>
+            <ul>
+                <li>Your payment information is encrypted and securely transmitted</li>
+                <li>We do not store your complete payment card details</li>
+                <li>Payment processing is subject to Razorpay's terms and conditions</li>
+                <li>By making a payment, you agree to Razorpay's terms of service</li>
+            </ul>
+            <p>For more information, visit: <a href="https://razorpay.com/terms/" target="_blank" rel="noopener">https://razorpay.com/terms/</a></p>
+
+            <h3>4.4 Payment Authorization</h3>
+            <p>By providing payment information, you authorize us to charge the payment method for the total amount of your order, including taxes and shipping charges.</p>
+
+            <h3>4.5 Failed Payments</h3>
+            <p>If payment fails, your order will not be processed. Please ensure:</p>
+            <ul>
+                <li>Sufficient funds are available</li>
+                <li>Payment method details are correct</li>
+                <li>Your bank has authorized the transaction</li>
+            </ul>
+
+            <h2>5. Shipping and Delivery</h2>
+            <h3>5.1 Shipping Address</h3>
+            <p>You are responsible for providing accurate shipping information. We are not liable for delays or non-delivery due to incorrect addresses.</p>
+
+            <h3>5.2 Delivery Timeframes</h3>
+            <p>Delivery timeframes are estimates and may vary based on:</p>
+            <ul>
+                <li>Shipping location</li>
+                <li>Product availability</li>
+                <li>Carrier performance</li>
+                <li>Unforeseen circumstances</li>
+            </ul>
+
+            <h3>5.3 Risk of Loss</h3>
+            <p>Title and risk of loss pass to you upon delivery to the shipping carrier. We are not responsible for loss or damage during transit, but we will assist with carrier claims.</p>
+
+            <h2>6. Returns and Refunds</h2>
+            <p>Our returns and refunds policy is detailed in our <a href="{% url 'store:cancellations_refunds' %}">Cancellations and Refunds</a> page. By making a purchase, you agree to these policies.</p>
+
+            <h2>7. Intellectual Property</h2>
+            <p>All content on this website, including text, graphics, logos, images, and software, is the property of Sulthan Fragrance or its content suppliers and is protected by copyright and trademark laws. You may not reproduce, distribute, or create derivative works without our written permission.</p>
+
+            <h2>8. Limitation of Liability</h2>
+            <p>To the maximum extent permitted by law:</p>
+            <ul>
+                <li>We are not liable for any indirect, incidental, or consequential damages</li>
+                <li>Our total liability is limited to the amount you paid for the products</li>
+                <li>We are not responsible for third-party actions or services (including payment processors)</li>
+            </ul>
+
+            <h2>9. Indemnification</h2>
+            <p>You agree to indemnify and hold harmless Sulthan Fragrance, its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from:</p>
+            <ul>
+                <li>Your use of the website</li>
+                <li>Your violation of these terms</li>
+                <li>Your violation of any rights of another party</li>
+            </ul>
+
+            <h2>10. Privacy</h2>
+            <p>Your use of our website is also governed by our <a href="{% url 'store:privacy_policy' %}">Privacy Policy</a>. Please review it to understand how we collect, use, and protect your information.</p>
+
+            <h2>11. Third-Party Services</h2>
+            <p>Our website may use third-party services, including:</p>
+            <ul>
+                <li><strong>Razorpay:</strong> For payment processing. Your use of Razorpay is subject to their terms and privacy policy.</li>
+                <li><strong>Shipping Carriers:</strong> For order delivery</li>
+                <li><strong>Email Services:</strong> For communications</li>
+            </ul>
+            <p>We are not responsible for the actions, policies, or practices of third-party service providers.</p>
+
+            <h2>12. Dispute Resolution</h2>
+            <h3>12.1 Governing Law</h3>
+            <p>These Terms and Conditions are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Kasaragod, Kerala, India.</p>
+
+            <h3>12.2 Dispute Process</h3>
+            <p>If you have a dispute:</p>
+            <ol>
+                <li>Contact us first at {{ site_config.email }} to resolve the issue</li>
+                <li>We will attempt to resolve disputes in good faith</li>
+                <li>If resolution is not possible, disputes will be resolved through appropriate legal channels</li>
+            </ol>
+
+            <h2>13. Modifications to Terms</h2>
+            <p>We reserve the right to modify these Terms and Conditions at any time. Changes will be effective immediately upon posting on the website. Your continued use of the website after changes constitutes acceptance of the modified terms.</p>
+
+            <h2>14. Severability</h2>
+            <p>If any provision of these Terms and Conditions is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+
+            <h2>15. Entire Agreement</h2>
+            <p>These Terms and Conditions, together with our Privacy Policy and Cancellations and Refunds Policy, constitute the entire agreement between you and Sulthan Fragrance regarding your use of our website and services.</p>
+
+            <h2>16. Contact Information</h2>
+            <p>If you have any questions about these Terms and Conditions, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> {{ site_config.email }}</li>
+                <li><strong>Phone:</strong> {{ site_config.phone }}</li>
+                <li><strong>Location:</strong> {{ site_config.location }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

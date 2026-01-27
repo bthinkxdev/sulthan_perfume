@@ -1,0 +1,30 @@
+{{ site_config.site_name }}
+========================================
+
+Your Login OTP
+========================================
+
+Hello,
+
+You have requested a login OTP for your account. Use the code below to complete your login:
+
+OTP CODE: {{ otp }}
+
+This OTP will expire in {{ expiry_minutes }} minutes.
+
+⚠️ SECURITY WARNING:
+- Never share this OTP with anyone
+- Our team will never ask for your OTP
+- If you didn't request this OTP, please ignore this email
+
+If you didn't request this OTP, you can safely ignore this email.
+
+========================================
+{{ site_config.site_name }}
+📍 {{ site_config.location }}
+📞 {{ site_config.phone }}
+✉️ {{ site_config.email }}
+Instagram: {{ site_config.instagram_url }}
+
+This is an automated email. Please do not reply to this message.
+

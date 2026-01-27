@@ -575,44 +575,61 @@
         }
     }
 
-    function addToCart() {
-        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-        
-        const existingIndex = cart.findIndex(item => 
-            item.id === productData.id && item.type === 'product' && item.variant_id === (selectedVariant ? selectedVariant.id : null)
-        );
-        
-        if (existingIndex > -1) {
-            cart[existingIndex].quantity += quantity;
-        } else {
-            cart.push({
-                id: productData.id,
-                type: 'product',
-                name: productData.name,
-                price: selectedVariant ? selectedVariant.price : productData.basePrice,
-                image: productData.image,
-                variant_id: selectedVariant ? selectedVariant.id : null,
-                variant_ml: selectedVariant ? selectedVariant.ml : null,
-                quantity: quantity
-            });
+    async function addToCart() {
+        if (!selectedVariant) {
+            showNotification('Please select a variant', 'error');
+            return;
         }
         
-        sessionStorage.setItem('cart', JSON.stringify(cart));
+        const itemData = {
+            id: productData.id,
+            type: 'product',
+            quantity: quantity,
+            variant_id: selectedVariant.id
+        };
         
-        // Update cart count
-        window.dispatchEvent(new Event('cart-updated'));
+        const result = await CartAPI.addToCart(itemData);
         
-        // Show notification
-        showNotification(`${quantity} × ${productData.name} added to cart!`);
-        
-        // Reset quantity
-        quantity = 1;
-        updateQuantityDisplay();
+        if (result.success) {
+            CartAPI.showNotification(`${quantity} × ${productData.name} added to cart!`);
+            // Reset quantity
+            quantity = 1;
+            updateQuantityDisplay();
+        } else if (result.requires_login) {
+            // Login modal will be shown by CartAPI
+            CartAPI.showNotification('Please login to add items to cart', 'error');
+        } else {
+            CartAPI.showNotification(result.error || 'Failed to add to cart', 'error');
+        }
     }
 
-    function buyNow() {
-        addToCart();
-        window.location.href = '{% url "store:cart" %}';
+    async function buyNow() {
+        if (!selectedVariant) {
+            showNotification('Please select a variant', 'error');
+            return;
+        }
+        
+        const itemData = {
+            id: productData.id,
+            type: 'product',
+            quantity: quantity,
+            variant_id: selectedVariant.id
+        };
+        
+        const result = await CartAPI.addToCart(itemData);
+        
+        if (result.success) {
+            window.location.href = '{% url "store:cart" %}';
+        } else if (result.requires_login) {
+            // Show login modal with redirect to cart
+            if (typeof openOTPModal === 'function') {
+                openOTPModal('{% url "store:cart" %}');
+            } else {
+                CartAPI.showNotification('Please login to continue', 'error');
+            }
+        } else {
+            CartAPI.showNotification(result.error || 'Failed to add to cart', 'error');
+        }
     }
 
     function showNotification(message) {

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="Sulthan Fragrance - Premium perfumes from France and Arabia. Long-lasting, non-alcohol fragrances.">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}Sulthan Fragrance - Premium Perfumes{% endblock %}</title>
     
     <!-- Icons -->
@@ -562,6 +563,12 @@
             </ul>
 
             <div class="nav-actions">
+                {% if user.is_authenticated %}
+                    <div style="display: flex; align-items: center; gap: 16px; margin-right: 16px;">
+                        <a href="{% url 'store:my_orders' %}" class="nav-link" style="text-decoration: none; color: var(--text-main); font-weight: 500;">Account</a>
+                        <a href="{% url 'store:logout' %}" class="nav-link" style="text-decoration: none; color: var(--text-muted); font-size: 14px;" onclick="return handleLogout(event)">Logout</a>
+                    </div>
+                {% endif %}
                 <button class="cart-btn" onclick="window.location.href='{% url 'store:cart' %}'">
                     <span>🛒</span>
                     <span class="cart-count" id="cart-count">0</span>
@@ -577,6 +584,11 @@
         <a href="{% url 'store:home' %}" onclick="toggleMobileMenu(false)">Home</a>
         <a href="{% url 'store:home' %}#products" onclick="toggleMobileMenu(false)">Products</a>
         <a href="{% url 'store:home' %}#combos" onclick="toggleMobileMenu(false)">Combos</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'store:my_orders' %}" onclick="toggleMobileMenu(false)">My Orders</a>
+            <a href="{% url 'store:my_profile' %}" onclick="toggleMobileMenu(false)">My Profile</a>
+            <a href="{% url 'store:logout' %}" onclick="toggleMobileMenu(false); return handleLogout(event)" style="color: #ef4444;">Logout</a>
+        {% endif %}
         <a class="mobile-cart" href="{% url 'store:cart' %}" onclick="toggleMobileMenu(false)">
             <span>Cart</span>
             <span class="cart-count" id="cart-count-mobile">0</span>
@@ -610,6 +622,14 @@
                     <span>📷</span> Instagram
                 </a>
             </div>
+
+            <div class="footer-section">
+                <h3>Legal & Information</h3>
+                <p><a href="{% url 'store:privacy_policy' %}">Privacy Policy</a></p>
+                <p><a href="{% url 'store:terms_conditions' %}">Terms and Conditions</a></p>
+                <p><a href="{% url 'store:cancellations_refunds' %}">Cancellations and Refunds</a></p>
+                <p><a href="{% url 'store:contact_us' %}">Contact Us</a></p>
+            </div>
         </div>
 
         <div class="footer-bottom">
@@ -630,9 +650,22 @@
 
         // Update cart count
         function updateCartCount() {
-            const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('cart-count').textContent = count;
+            // If user is authenticated, use CartAPI
+            if (typeof CartAPI !== 'undefined' && CartAPI.isAuthenticated) {
+                CartAPI.loadCart().then(cart => {
+                    const count = cart ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0;
+                    document.getElementById('cart-count').textContent = count;
+                    const mobileCount = document.getElementById('cart-count-mobile');
+                    if (mobileCount) mobileCount.textContent = count;
+                });
+            } else {
+                // Fallback to sessionStorage for guests
+                const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+                const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+                document.getElementById('cart-count').textContent = count;
+                const mobileCount = document.getElementById('cart-count-mobile');
+                if (mobileCount) mobileCount.textContent = count;
+            }
         }
 
         // Initialize cart count
@@ -641,6 +674,62 @@
         // Listen for cart updates
         window.addEventListener('storage', updateCartCount);
         window.addEventListener('cart-updated', updateCartCount);
+        
+        // Logout function
+        async function handleLogout(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
+            if (!confirm('Are you sure you want to logout?')) {
+                return false;
+            }
+            
+            try {
+                const response = await fetch('{% url "store:logout" %}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Clear cart count
+                        CartAPI.updateCartCount(0);
+                        // Redirect to home
+                        window.location.href = '{% url "store:home" %}';
+                    }
+                } else {
+                    // If AJAX fails, just redirect
+                    window.location.href = '{% url "store:logout" %}';
+                }
+            } catch (error) {
+                // If AJAX fails, just redirect
+                window.location.href = '{% url "store:logout" %}';
+            }
+            
+            return false;
+        }
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
         // Mobile menu toggle
         const mobileMenu = document.getElementById('mobileMenu');
@@ -686,6 +775,12 @@
             });
         });
     </script>
+
+    <!-- OTP Login Modal -->
+    {% include 'store/otp_login_modal.html' %}
+
+    <!-- Cart API -->
+    <script src="{% static 'js/cart-api.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 </body>

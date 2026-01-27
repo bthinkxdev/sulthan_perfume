@@ -33,8 +33,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.sulthanfragrance.com",
 ]
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+# Only use secure cookies in production (HTTPS)
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
 
 
 
@@ -136,6 +138,54 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'store.User'
+
+# Login URL - redirect to home page where OTP modal will be shown
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/'
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'achujozefsl0709@gmail.com' 
+EMAIL_HOST_PASSWORD = 'mtbsaphoieurdqqe'  
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+ADMIN_NOTIFICATION_EMAILS = ['dineshvarkala@gmail.com']
+
+# OTP Settings
+OTP_EXPIRY_MINUTES = 10
+OTP_RATE_LIMIT_MINUTES = 1  # Cooldown between OTP requests
+
+# Cache Configuration (for OTP rate limiting)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'store': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django.core.mail': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

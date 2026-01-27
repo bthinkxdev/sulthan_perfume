@@ -1065,61 +1065,67 @@
 
 {% block extra_js %}
 <script>
-    // Cart Management
-    function addToCart(id, type, name, price, image, variantId = null, variantMl = null) {
-        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    // Show OTP modal if user was redirected here for login
+    {% if show_login_modal %}
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof openOTPModal === 'function') {
+            openOTPModal('{{ next_url }}');
+        }
+    });
+    {% endif %}
+    
+    // Cart Management - Updated to use DB cart API
+    async function addToCart(id, type, name, price, image, variantId = null, variantMl = null) {
+        // Prepare item data
+        const itemData = {
+            id: id,
+            type: type,
+            quantity: 1
+        };
         
-        const existingIndex = cart.findIndex(item => item.id === id && item.type === type && item.variant_id === variantId);
-        
-        if (existingIndex > -1) {
-            cart[existingIndex].quantity += 1;
-        } else {
-            cart.push({
-                id: id,
-                type: type,
-                name: name,
-                price: parseFloat(price),
-                image: image,
-                variant_id: variantId,
-                variant_ml: variantMl,
-                images: [image].filter(Boolean),
-                quantity: 1
-            });
+        if (type === 'product' && variantId) {
+            itemData.variant_id = variantId;
         }
         
-        sessionStorage.setItem('cart', JSON.stringify(cart));
+        // Use CartAPI to add to cart
+        const result = await CartAPI.addToCart(itemData);
         
-        // Update cart count
-        updateCartCount();
-        
-        // Show feedback
-        showNotification(`${name} added to cart!`);
+        if (result.success) {
+            CartAPI.showNotification(`${name} added to cart!`);
+        } else if (result.requires_login) {
+            // Login modal will be shown by CartAPI
+            CartAPI.showNotification('Please login to add items to cart', 'error');
+        } else {
+            CartAPI.showNotification(result.error || 'Failed to add to cart', 'error');
+        }
     }
 
     function showNotification(message) {
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: linear-gradient(135deg, var(--gold), var(--warm-amber));
-            color: var(--primary-black);
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            z-index: 10000;
-            animation: slideInUp 0.3s ease-out;
-            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.animation = 'slideOutDown 0.3s ease-out';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        CartAPI.showNotification(message);
     }
+    
+    // Update cart count function (for backward compatibility)
+    function updateCartCount() {
+        if (window.CartAPI && CartAPI.isAuthenticated) {
+            CartAPI.loadCart();
+        } else {
+            // Fallback to sessionStorage for guests
+            const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            CartAPI.updateCartCount(count);
+        }
+    }
+    
+    // Merge session cart when user logs in
+    window.addEventListener('cart-updated', async function() {
+        if (CartAPI.isAuthenticated) {
+            // Try to merge session cart if exists
+            const sessionCart = CartAPI.getSessionCart();
+            if (sessionCart && sessionCart.length > 0) {
+                await CartAPI.mergeSessionCart();
+            }
+        }
+    });
 
     // Add animation styles
     const style = document.createElement('style');

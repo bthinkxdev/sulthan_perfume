@@ -318,11 +318,29 @@
 
 {% block extra_js %}
 <script>
-    function loadCart() {
-        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    let cartItems = [];
+    
+    async function loadCart() {
         const cartContent = document.getElementById('cartContent');
-
-        if (cart.length === 0) {
+        
+        // Check if user is authenticated
+        if (!CartAPI.isAuthenticated) {
+            const authenticated = await CartAPI.checkAuth();
+            if (!authenticated) {
+                // Show login modal
+                if (typeof openOTPModal === 'function') {
+                    openOTPModal('{% url "store:cart" %}');
+                } else {
+                    window.location.href = '{% url "store:home" %}';
+                }
+                return;
+            }
+        }
+        
+        // Load cart from server
+        const cart = await CartAPI.loadCart();
+        
+        if (!cart || cart.length === 0) {
             cartContent.innerHTML = `
                 <div class="empty-cart">
                     <div class="empty-icon"><i class="fa-solid fa-cart-shopping"></i></div>
@@ -331,38 +349,40 @@
                     <a href="{% url 'store:home' %}" class="btn-primary">Continue Shopping</a>
                 </div>
             `;
+            cartItems = [];
             return;
         }
-
-        // Calculate totals
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        cartItems = cart;
+        const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
         const total = subtotal;
+        const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
         // Build cart items HTML
         const itemsHTML = cart.map((item, index) => {
-            const images = item.images && item.images.length ? item.images : (item.image ? [item.image] : []);
+            const imageUrl = item.product_image || item.combo_image || '';
+            const name = item.product_name || item.combo_title || 'Item';
             const variantLabel = item.variant_ml ? `${item.variant_ml}ml` : null;
             const typeLabel = item.type === 'combo' ? 'Combo Offer' : `Single Product${variantLabel ? ' • ' + variantLabel : ''}`;
-            const imageHTML = images.length === 0
-                ? '<div class="item-image" style="background: var(--charcoal);"></div>'
-                : `<div class="item-image" style="display:flex; gap:6px; align-items:center; ${images.length > 1 ? 'justify-content:center;' : ''}">
-                        ${images.slice(0,2).map((src, i) => `<img src="${src}" alt="${item.name}" style="width:${images.length>1?56:120}px; height:${images.length>1?56:120}px; object-fit:cover; border-radius:12px; ${i===1?'box-shadow:0 0 0 2px #fff;':''}">`).join('')}
-                   </div>`;
+            const imageHTML = imageUrl
+                ? `<div class="item-image"><img src="${imageUrl}" alt="${name}" style="width:120px; height:120px; object-fit:cover; border-radius:12px;"></div>`
+                : '<div class="item-image" style="background: var(--charcoal);"></div>';
+            
             return `
             <div class="cart-item">
                 ${imageHTML}
                 <div class="item-details">
-                    <div class="item-name">${item.name}</div>
+                    <div class="item-name">${name}</div>
                     <span class="item-type-badge">${typeLabel}</span>
                     ${variantLabel ? `<div style="color: var(--text-muted); font-size: 13px;">${variantLabel}</div>` : ''}
                     <div class="item-price">₹${item.price.toFixed(2)}</div>
                 </div>
                 <div class="item-actions">
-                    <button class="remove-btn" onclick="removeFromCart(${index})">Remove</button>
+                    <button class="remove-btn" onclick="removeFromCart('${item.id}')">Remove</button>
                     <div class="quantity-control">
-                        <button class="qty-btn-cart" onclick="updateQuantity(${index}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>−</button>
+                        <button class="qty-btn-cart" onclick="updateQuantity('${item.id}', -1)" ${item.quantity <= 1 ? 'disabled' : ''}>−</button>
                         <span class="qty-display">${item.quantity}</span>
-                        <button class="qty-btn-cart" onclick="updateQuantity(${index}, 1)">+</button>
+                        <button class="qty-btn-cart" onclick="updateQuantity('${item.id}', 1)">+</button>
                     </div>
                 </div>
             </div>
@@ -373,7 +393,7 @@
             <div class="cart-summary">
                 <h3 class="summary-title">Order Summary</h3>
                 <div class="summary-row">
-                    <span class="summary-label">Items (${cart.reduce((sum, item) => sum + item.quantity, 0)})</span>
+                    <span class="summary-label">Items (${itemCount})</span>
                     <span class="summary-value">₹${subtotal.toFixed(2)}</span>
                 </div>
                 <div class="summary-row summary-total">
@@ -391,45 +411,55 @@
         `;
     }
 
-    function updateQuantity(index, change) {
-        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    async function updateQuantity(itemId, change) {
+        const item = cartItems.find(i => i.id === itemId);
+        if (!item) return;
         
-        if (cart[index]) {
-            cart[index].quantity += change;
-            
-            if (cart[index].quantity < 1) {
-                cart[index].quantity = 1;
-            }
-            
-            sessionStorage.setItem('cart', JSON.stringify(cart));
-            loadCart();
-            window.dispatchEvent(new Event('cart-updated'));
+        const newQuantity = item.quantity + change;
+        if (newQuantity < 1) return;
+        
+        const result = await CartAPI.updateCartItem(itemId, newQuantity);
+        
+        if (result.success) {
+            await loadCart();
+        } else {
+            CartAPI.showNotification(result.error || 'Failed to update quantity', 'error');
         }
     }
 
-    function removeFromCart(index) {
-        let cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+    async function removeFromCart(itemId) {
+        if (!confirm('Remove this item from cart?')) return;
         
-        if (confirm('Remove this item from cart?')) {
-            cart.splice(index, 1);
-            sessionStorage.setItem('cart', JSON.stringify(cart));
-            loadCart();
-            window.dispatchEvent(new Event('cart-updated'));
-            
-            showNotification('Item removed from cart');
+        const result = await CartAPI.removeFromCart(itemId);
+        
+        if (result.success) {
+            CartAPI.showNotification('Item removed from cart');
+            await loadCart();
+        } else {
+            CartAPI.showNotification(result.error || 'Failed to remove item', 'error');
         }
     }
 
     function proceedToCheckout() {
-        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-        
-        if (cart.length === 0) {
-            alert('Your cart is empty!');
+        if (cartItems.length === 0) {
+            CartAPI.showNotification('Your cart is empty!', 'error');
             return;
         }
         
         window.location.href = '{% url "store:checkout" %}';
     }
+    
+    // Load cart on page load
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Try to merge session cart if user just logged in
+        if (CartAPI.isAuthenticated) {
+            const sessionCart = CartAPI.getSessionCart();
+            if (sessionCart && sessionCart.length > 0) {
+                await CartAPI.mergeSessionCart();
+            }
+        }
+        await loadCart();
+    });
 
     function showNotification(message) {
         const notification = document.createElement('div');

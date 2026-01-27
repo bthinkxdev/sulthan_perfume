@@ -1,0 +1,266 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Cancellations and Refunds - Sulthan Fragrance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-page {
+        padding: 100px var(--page-padding) 80px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .page-title {
+        font-family: var(--font-heading);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .legal-content {
+        background: var(--card);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 48px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: var(--blur-light);
+        -webkit-backdrop-filter: var(--blur-light);
+    }
+
+    .legal-content h2 {
+        font-family: var(--font-heading);
+        font-size: 28px;
+        color: var(--primary);
+        margin-top: 36px;
+        margin-bottom: 16px;
+    }
+
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+
+    .legal-content h3 {
+        font-family: var(--font-heading);
+        font-size: 20px;
+        color: var(--primary);
+        margin-top: 28px;
+        margin-bottom: 12px;
+    }
+
+    .legal-content p {
+        color: var(--text-main);
+        line-height: 1.8;
+        margin-bottom: 16px;
+        font-size: 15px;
+    }
+
+    .legal-content ul, .legal-content ol {
+        margin-left: 24px;
+        margin-bottom: 16px;
+        color: var(--text-main);
+        line-height: 1.8;
+    }
+
+    .legal-content li {
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .last-updated {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-style: italic;
+        margin-bottom: 32px;
+        text-align: center;
+    }
+
+    .highlight-box {
+        background: #fff7ef;
+        border-left: 4px solid var(--primary);
+        padding: 20px;
+        margin: 24px 0;
+        border-radius: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .legal-page {
+            padding: 80px var(--page-padding) 60px;
+        }
+
+        .legal-content {
+            padding: 32px 24px;
+        }
+
+        .page-title {
+            font-size: 32px;
+        }
+
+        .legal-content h2 {
+            font-size: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="legal-container">
+        <h1 class="page-title">Cancellations and Refunds</h1>
+        <p class="last-updated">Last Updated: January 2025</p>
+        
+        <div class="legal-content">
+            <h2>1. Cancellation Policy</h2>
+            <h3>1.1 Order Cancellation by Customer</h3>
+            <p>You may cancel your order before it is shipped. To cancel an order:</p>
+            <ul>
+                <li>Contact us immediately at {{ site_config.email }} or {{ site_config.phone }}</li>
+                <li>Provide your order number</li>
+                <li>Cancellation requests must be made within 24 hours of order placement</li>
+            </ul>
+
+            <h3>1.2 Order Cancellation by Us</h3>
+            <p>We reserve the right to cancel your order in the following circumstances:</p>
+            <ul>
+                <li>Product unavailability</li>
+                <li>Pricing errors</li>
+                <li>Suspected fraudulent activity</li>
+                <li>Violation of terms and conditions</li>
+            </ul>
+            <p>If we cancel your order, we will notify you and process a full refund within 5-7 business days.</p>
+
+            <h2>2. Refund Policy</h2>
+            <div class="highlight-box">
+                <p><strong>Important:</strong> All refunds are processed through Razorpay, the same payment gateway used for transactions. Refunds will be credited to the original payment method used during purchase.</p>
+            </div>
+
+            <h3>2.1 Eligibility for Refunds</h3>
+            <p>You are eligible for a refund in the following cases:</p>
+            <ul>
+                <li>Order cancelled before shipment</li>
+                <li>Product received in damaged condition</li>
+                <li>Wrong product received</li>
+                <li>Product quality issues (defective items)</li>
+                <li>Order not delivered within the promised timeframe</li>
+            </ul>
+
+            <h3>2.2 Non-Refundable Items</h3>
+            <p>The following are not eligible for refunds:</p>
+            <ul>
+                <li>Items damaged due to misuse or negligence</li>
+                <li>Items returned after 7 days of delivery</li>
+                <li>Items without original packaging</li>
+                <li>Customized or personalized items</li>
+                <li>Items returned without proper authorization</li>
+            </ul>
+
+            <h3>2.3 Refund Process</h3>
+            <p>To request a refund:</p>
+            <ol>
+                <li>Contact us at {{ site_config.email }} or {{ site_config.phone }} within 7 days of delivery</li>
+                <li>Provide your order number and reason for refund</li>
+                <li>We will review your request and may request photos or additional information</li>
+                <li>Once approved, we will initiate the refund process</li>
+            </ol>
+
+            <h3>2.4 Refund Processing Time</h3>
+            <p>Refund processing times vary based on the payment method:</p>
+            <ul>
+                <li><strong>Credit/Debit Cards:</strong> 5-7 business days</li>
+                <li><strong>UPI:</strong> 3-5 business days</li>
+                <li><strong>Net Banking:</strong> 5-10 business days</li>
+                <li><strong>Wallet:</strong> 2-3 business days</li>
+            </ul>
+            <p>Please note that refunds are processed by Razorpay and the actual credit to your account depends on your bank's processing time.</p>
+
+            <h3>2.5 Partial Refunds</h3>
+            <p>In case of partial order issues (e.g., one item in a combo is damaged), we may process a partial refund for the affected item only.</p>
+
+            <h2>3. Return Policy</h2>
+            <h3>3.1 Return Conditions</h3>
+            <p>To be eligible for a return:</p>
+            <ul>
+                <li>Items must be unused and in original condition</li>
+                <li>Original packaging must be intact</li>
+                <li>Return request must be made within 7 days of delivery</li>
+                <li>Items must not be damaged by customer</li>
+            </ul>
+
+            <h3>3.2 Return Process</h3>
+            <ol>
+                <li>Contact us to initiate a return request</li>
+                <li>We will provide return instructions and authorization</li>
+                <li>Package the item securely in original packaging</li>
+                <li>Ship the item back to us (return shipping costs may apply)</li>
+                <li>Once we receive and inspect the item, we will process your refund</li>
+            </ol>
+
+            <h3>3.3 Return Shipping</h3>
+            <p>Return shipping costs:</p>
+            <ul>
+                <li>If the return is due to our error (wrong item, damaged item), we will bear the return shipping cost</li>
+                <li>If the return is due to customer preference, the customer is responsible for return shipping</li>
+            </ul>
+
+            <h2>4. Payment Gateway Refunds (Razorpay)</h2>
+            <h3>4.1 Razorpay Refund Processing</h3>
+            <p>All refunds are processed securely through Razorpay:</p>
+            <ul>
+                <li>Refunds are initiated from our end within 24-48 hours of approval</li>
+                <li>Razorpay processes the refund to your original payment method</li>
+                <li>You will receive email notifications from Razorpay regarding refund status</li>
+                <li>Refund status can be tracked through your order details</li>
+            </ul>
+
+            <h3>4.2 Refund to Original Payment Method</h3>
+            <p>Refunds are always processed to the original payment method used during purchase:</p>
+            <ul>
+                <li>If you paid via credit/debit card, refund goes to the same card</li>
+                <li>If you paid via UPI, refund goes to the same UPI ID</li>
+                <li>If you paid via net banking, refund goes to the same bank account</li>
+            </ul>
+            <p>We cannot process refunds to a different payment method or account.</p>
+
+            <h3>4.3 Failed Refunds</h3>
+            <p>In rare cases, refunds may fail due to:</p>
+            <ul>
+                <li>Closed bank account or card</li>
+                <li>Invalid payment details</li>
+                <li>Bank processing issues</li>
+            </ul>
+            <p>If a refund fails, we will contact you to arrange an alternative refund method.</p>
+
+            <h2>5. Exchange Policy</h2>
+            <p>We currently do not offer direct exchanges. If you wish to exchange a product:</p>
+            <ol>
+                <li>Return the original item following our return policy</li>
+                <li>Once the return is processed and refunded, place a new order for the desired item</li>
+            </ol>
+
+            <h2>6. Dispute Resolution</h2>
+            <p>If you are not satisfied with our refund decision, you may:</p>
+            <ul>
+                <li>Contact us at {{ site_config.email }} with detailed information</li>
+                <li>We will review your case and provide a resolution</li>
+                <li>For payment-related disputes, you may also contact Razorpay support</li>
+            </ul>
+
+            <h2>7. Contact Us</h2>
+            <p>For any questions regarding cancellations, returns, or refunds, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> {{ site_config.email }}</li>
+                <li><strong>Phone:</strong> {{ site_config.phone }}</li>
+                <li><strong>Location:</strong> {{ site_config.location }}</li>
+            </ul>
+            <p>Our customer service team is available to assist you with any concerns.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
