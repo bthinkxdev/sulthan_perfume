@@ -153,7 +153,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'achujozefsl0709@gmail.com' 
 EMAIL_HOST_PASSWORD = 'mtbsaphoieurdqqe'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-ADMIN_NOTIFICATION_EMAILS = ['dineshvarkala@gmail.com']
+ADMIN_NOTIFICATION_EMAILS = ['sulthanfragrance@gmail.com']
 
 # OTP Settings
 OTP_EXPIRY_MINUTES = 10

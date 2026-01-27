@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.core.paginator import Paginator
-from .models import Product, ProductVariant, Combo, Order, OrderItem
+from .models import Product, ProductVariant, Combo, Order, OrderItem, Category
 from .forms import (
     ProductForm,
     ProductVariantForm,
@@ -22,12 +22,133 @@ def admin_dashboard(request):
         'total_products': Product.objects.filter(is_active=True).count(),
         'total_combos': Combo.objects.filter(is_active=True).count(),
         'total_orders': Order.objects.count(),
+        'total_categories': Category.objects.filter(is_active=True).count(),
         'new_orders': Order.objects.filter(status='new').count(),
         'processing_orders': Order.objects.filter(status='processing').count(),
         'recent_orders': Order.objects.all()[:5],
         'featured_products': Product.objects.filter(is_featured=True, is_active=True)[:5],
     }
     return render(request, 'admin_dashboard/dashboard.html', context)
+
+
+# ============= CATEGORY MANAGEMENT =============
+
+# @staff_member_required
+def category_list(request):
+    """List all categories with search and filter"""
+    categories = Category.objects.annotate(
+        products_count=Count('products')
+    )
+    
+    # Search
+    search_query = request.GET.get('search', '')
+    if search_query:
+        categories = categories.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        categories = categories.filter(is_active=True)
+    elif status_filter == 'inactive':
+        categories = categories.filter(is_active=False)
+    
+    # Pagination
+    paginator = Paginator(categories, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    return render(request, 'admin_dashboard/category_list.html', context)
+
+
+# @staff_member_required
+def category_create(request):
+    """Create a new category"""
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description', '')
+        display_order = request.POST.get('display_order', 0)
+        is_active = request.POST.get('is_active') == 'on'
+        image = request.FILES.get('image')
+        
+        category = Category(
+            name=name,
+            description=description,
+            display_order=display_order,
+            is_active=is_active,
+        )
+        if image:
+            category.image = image
+        
+        category.save()
+        messages.success(request, f'Category "{category.name}" created successfully!')
+        return redirect('admin_category_detail', pk=category.pk)
+    
+    return render(request, 'admin_dashboard/category_form.html', {
+        'action': 'Create'
+    })
+
+
+# @staff_member_required
+def category_edit(request, pk):
+    """Edit an existing category"""
+    category = get_object_or_404(Category, pk=pk)
+    
+    if request.method == 'POST':
+        category.name = request.POST.get('name')
+        category.description = request.POST.get('description', '')
+        category.display_order = request.POST.get('display_order', 0)
+        category.is_active = request.POST.get('is_active') == 'on'
+        
+        image = request.FILES.get('image')
+        if image:
+            category.image = image
+        
+        category.save()
+        messages.success(request, f'Category "{category.name}" updated successfully!')
+        return redirect('admin_category_detail', pk=category.pk)
+    
+    return render(request, 'admin_dashboard/category_form.html', {
+        'category': category,
+        'action': 'Edit'
+    })
+
+
+# @staff_member_required
+def category_detail(request, pk):
+    """View category details with products"""
+    category = get_object_or_404(Category, pk=pk)
+    products = category.products.all()[:10]
+    total_products = category.products.count()
+    
+    return render(request, 'admin_dashboard/category_detail.html', {
+        'category': category,
+        'products': products,
+        'total_products': total_products,
+    })
+
+
+# @staff_member_required
+def category_delete(request, pk):
+    """Delete a category"""
+    category = get_object_or_404(Category, pk=pk)
+    
+    if request.method == 'POST':
+        category_name = category.name
+        category.delete()
+        messages.success(request, f'Category "{category_name}" deleted successfully!')
+        return redirect('admin_category_list')
+    
+    return render(request, 'admin_dashboard/category_confirm_delete.html', {
+        'category': category
+    })
 
 
 # ============= PRODUCT MANAGEMENT =============

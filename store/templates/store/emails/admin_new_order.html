@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c211a 0%, #4a3c31 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .order-summary {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .order-info {
+            margin: 10px 0;
+        }
+        .order-info strong {
+            display: inline-block;
+            width: 150px;
+            color: #2c211a;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .items-table th {
+            background: #2c211a;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .total-row {
+            font-weight: bold;
+            font-size: 18px;
+            color: #2c211a;
+        }
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #c46f44;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛍️ New Order Received!</h1>
+    </div>
+    
+    <div class="content">
+        <div class="alert">
+            <strong>⚠️ Action Required:</strong> A new order has been placed and requires your attention.
+        </div>
+        
+        <div class="order-summary">
+            <h2 style="margin-top: 0; color: #2c211a;">Order Details</h2>
+            <div class="order-info">
+                <strong>Order Number:</strong> {{ order.order_number }}
+            </div>
+            <div class="order-info">
+                <strong>Order Date:</strong> {{ order.created_at|date:"F d, Y H:i" }}
+            </div>
+            <div class="order-info">
+                <strong>Payment Status:</strong> {{ order.get_payment_status_display }}
+            </div>
+        </div>
+        
+        <h2 style="color: #2c211a;">Customer Information</h2>
+        <div class="order-info">
+            <strong>Name:</strong> {{ order.customer_name }}
+        </div>
+        <div class="order-info">
+            <strong>Phone:</strong> {{ order.phone }}
+        </div>
+        {% if order.user %}
+        <div class="order-info">
+            <strong>Email:</strong> {{ order.user.email }}
+        </div>
+        {% endif %}
+        <div class="order-info">
+            <strong>Address:</strong> {{ order.address_line }}, {{ order.city }}, {{ order.district }}, PIN: {{ order.pincode }}
+        </div>
+        
+        <h2 style="color: #2c211a;">Order Items</h2>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items.all %}
+                <tr>
+                    <td>
+                        {% if item.item_type == 'product' %}
+                            {{ item.product.name }}
+                            {% if item.variant %}({{ item.variant.ml }}ml){% endif %}
+                        {% elif item.item_type == 'combo' %}
+                            {{ item.combo.title }} (Combo)
+                        {% endif %}
+                    </td>
+                    <td>{{ item.quantity }}</td>
+                    <td>₹{{ item.price_at_purchase }}</td>
+                    <td>₹{{ item.total_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">Total Amount:</td>
+                    <td>₹{{ order.total_amount }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <div style="text-align: center;">
+            <a href="http://{{ domain }}/dashboard/orders/{{ order.id }}/" class="button">
+                View Order in Admin Panel
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from Sulthan Fragrance.</p>
+            <p>Please login to your admin panel to process this order.</p>
+        </div>
+    </div>
+</body>
+</html>
+

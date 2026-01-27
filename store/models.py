@@ -11,6 +11,41 @@ import secrets
 from datetime import timedelta
 
 
+class Category(models.Model):
+    """Product category model"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    image = models.ImageField(upload_to='categories/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+        verbose_name_plural = 'Categories'
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['is_active', 'display_order']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+    
+    @property
+    def active_products_count(self):
+        """Return count of active products in this category"""
+        return self.products.filter(is_active=True).count()
+
+
 class Product(models.Model):
     ORIGIN_CHOICES = [
         ('france', 'France'),
@@ -20,6 +55,9 @@ class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
+    
+    category = models.ForeignKey(Category, related_name='products', on_delete=models.SET_NULL, 
+                                 null=True, blank=True, help_text="Product category")
 
     short_description = models.CharField(max_length=255)
     full_description = models.TextField()
@@ -42,6 +80,7 @@ class Product(models.Model):
         indexes = [
             models.Index(fields=['slug']),
             models.Index(fields=['is_active']),
+            models.Index(fields=['category', 'is_active']),
         ]
 
     def save(self, *args, **kwargs):
@@ -216,6 +255,7 @@ class Order(models.Model):
 
     address_line = models.TextField()
     city = models.CharField(max_length=50)
+    district = models.CharField(max_length=50, default='Kasaragod')
     pincode = models.CharField(max_length=10)
 
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='new')
@@ -417,6 +457,7 @@ class Address(models.Model):
     phone = models.CharField(max_length=15)
     address_line = models.TextField()
     city = models.CharField(max_length=50)
+    district = models.CharField(max_length=50, default='Kasaragod')
     pincode = models.CharField(max_length=10)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -427,7 +468,7 @@ class Address(models.Model):
         verbose_name_plural = 'Addresses'
     
     def __str__(self):
-        return f"{self.name} - {self.city}"
+        return f"{self.name} - {self.city}, {self.district}"
     
     def save(self, *args, **kwargs):
         # If this is set as default, unset other defaults for this user

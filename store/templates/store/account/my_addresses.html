@@ -17,7 +17,8 @@
                 <h3 style="font-size: 18px; margin-bottom: 12px;">{{ address.name }}</h3>
                 <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
                     {{ address.address_line }}<br>
-                    {{ address.city }}, {{ address.pincode }}<br>
+                    {{ address.city }}, {{ address.district }}<br>
+                    PIN: {{ address.pincode }}<br>
                     Phone: {{ address.phone }}
                 </p>
                 <div style="display: flex; gap: 8px;">
@@ -43,6 +44,8 @@ function showAddAddressForm() {
     if (!address) return;
     const city = prompt('City:');
     if (!city) return;
+    const district = prompt('District:');
+    if (!district) return;
     const pincode = prompt('Pincode:');
     if (!pincode) return;
     
@@ -52,7 +55,7 @@ function showAddAddressForm() {
             'Content-Type': 'application/json',
             'X-CSRFToken': CartAPI.getCSRFToken()
         },
-        body: JSON.stringify({ name, phone, address_line: address, city, pincode })
+        body: JSON.stringify({ name, phone, address_line: address, city, district, pincode })
     })
     .then(r => r.json())
     .then(data => {

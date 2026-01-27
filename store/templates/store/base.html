@@ -648,32 +648,41 @@
             }
         });
 
-        // Update cart count
-        function updateCartCount() {
-            // If user is authenticated, use CartAPI
-            if (typeof CartAPI !== 'undefined' && CartAPI.isAuthenticated) {
-                CartAPI.loadCart().then(cart => {
-                    const count = cart ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0;
-                    document.getElementById('cart-count').textContent = count;
-                    const mobileCount = document.getElementById('cart-count-mobile');
-                    if (mobileCount) mobileCount.textContent = count;
-                });
-            } else {
-                // Fallback to sessionStorage for guests
-                const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-                const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-                document.getElementById('cart-count').textContent = count;
-                const mobileCount = document.getElementById('cart-count-mobile');
-                if (mobileCount) mobileCount.textContent = count;
-            }
+        // Update cart count from event
+        function updateCartCountFromEvent(event) {
+            const count = event.detail ? event.detail.count : 0;
+            const cartCountEl = document.getElementById('cart-count');
+            const mobileCountEl = document.getElementById('cart-count-mobile');
+            
+            if (cartCountEl) cartCountEl.textContent = count || 0;
+            if (mobileCountEl) mobileCountEl.textContent = count || 0;
         }
 
-        // Initialize cart count
-        updateCartCount();
+        // Update cart count from session storage (for guests)
+        function updateCartCountFromStorage() {
+            if (typeof CartAPI !== 'undefined' && CartAPI.isAuthenticated) {
+                // Authenticated users - count is updated by CartAPI via events
+                return;
+            }
+            
+            // Fallback to sessionStorage for guests
+            const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartCountEl = document.getElementById('cart-count');
+            const mobileCountEl = document.getElementById('cart-count-mobile');
+            
+            if (cartCountEl) cartCountEl.textContent = count;
+            if (mobileCountEl) mobileCountEl.textContent = count;
+        }
 
-        // Listen for cart updates
-        window.addEventListener('storage', updateCartCount);
-        window.addEventListener('cart-updated', updateCartCount);
+        // Initialize cart count (CartAPI.init() will handle authenticated users)
+        updateCartCountFromStorage();
+
+        // Listen for cart updates from CartAPI (no infinite loop!)
+        window.addEventListener('cart-updated', updateCartCountFromEvent);
+        
+        // Listen for storage changes (for guest carts)
+        window.addEventListener('storage', updateCartCountFromStorage);
         
         // Logout function
         async function handleLogout(event) {

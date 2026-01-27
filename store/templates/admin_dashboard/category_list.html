@@ -1,7 +1,7 @@
 {% extends 'admin_dashboard/base.html' %}
 
-{% block title %}Orders{% endblock %}
-{% block page_title %}Order Management{% endblock %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Categories Management{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,16 +10,13 @@
         <form method="get" class="row g-3">
             <div class="col-md-5">
                 <input type="text" name="search" class="form-control" 
-                       placeholder="Search by order #, customer name, or phone..." value="{{ search_query }}">
+                       placeholder="Search categories..." value="{{ search_query }}">
             </div>
             <div class="col-md-3">
                 <select name="status" class="form-control">
                     <option value="">All Status</option>
-                    {% for value, label in status_choices %}
-                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -28,70 +25,73 @@
                 </button>
             </div>
             <div class="col-md-2">
-                <a href="?status=" class="btn btn-secondary w-100">
-                    <i class="bi bi-arrow-clockwise"></i> Reset
+                <a href="{% url 'admin_category_create' %}" class="btn btn-success w-100">
+                    <i class="bi bi-plus-lg"></i> Add Category
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Orders Table -->
+    <!-- Categories Table -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Order #</th>
-                            <th>Customer</th>
-                            <th>Phone</th>
-                            <th>Location</th>
-                            <th>Items</th>
-                            <th>Total</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Products</th>
+                            <th>Display Order</th>
                             <th>Status</th>
-                            <th>Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for order in page_obj %}
+                        {% for category in page_obj %}
                         <tr>
                             <td>
-                                <a href="{% url 'admin_order_detail' order.pk %}" class="fw-bold">
-                                    {{ order.order_number }}
-                                </a>
-                            </td>
-                            <td>{{ order.customer_name }}</td>
-                            <td>{{ order.phone }}</td>
-                            <td>
-                                {{ order.city }}, {{ order.district }}<br>
-                                <small class="text-muted">PIN: {{ order.pincode }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-info">{{ order.items.count }} item(s)</span>
-                            </td>
-                            <td class="fw-bold">₹{{ order.total_amount }}</td>
-                            <td>
-                                {% if order.status == 'new' %}
-                                    <span class="badge bg-warning text-dark">New</span>
-                                {% elif order.status == 'processing' %}
-                                    <span class="badge bg-info">Processing</span>
-                                {% elif order.status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
+                                {% if category.image %}
+                                <img src="{{ category.image.url }}" alt="{{ category.name }}" 
+                                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                 {% else %}
-                                    <span class="badge bg-danger">Cancelled</span>
+                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                                     style="width: 60px; height: 60px; border-radius: 5px;">
+                                    <i class="bi bi-folder"></i>
+                                </div>
                                 {% endif %}
                             </td>
                             <td>
-                                {{ order.created_at|date:"M d, Y" }}<br>
-                                <small class="text-muted">{{ order.created_at|time:"h:i A" }}</small>
+                                <strong>{{ category.name }}</strong><br>
+                                <small class="text-muted">{{ category.slug }}</small>
+                            </td>
+                            <td>
+                                <small>{{ category.description|truncatewords:15|default:"No description" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ category.products_count }} product(s)</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ category.display_order }}</span>
+                            </td>
+                            <td>
+                                {% if category.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
                             </td>
                             <td class="table-actions">
-                                <a href="{% url 'admin_order_detail' order.pk %}" 
-                                   class="btn btn-sm btn-info" title="View Details">
+                                <a href="{% url 'admin_category_detail' category.pk %}" 
+                                   class="btn btn-sm btn-info" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{% url 'admin_order_delete' order.pk %}" 
+                                <a href="{% url 'admin_category_edit' category.pk %}" 
+                                   class="btn btn-sm btn-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'admin_category_delete' category.pk %}" 
                                    class="btn btn-sm btn-danger" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </a>
@@ -99,9 +99,12 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-5">
+                            <td colspan="7" class="text-center text-muted py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
-                                <p class="mt-3">No orders found</p>
+                                <p class="mt-3">No categories found</p>
+                                <a href="{% url 'admin_category_create' %}" class="btn btn-success">
+                                    <i class="bi bi-plus-lg"></i> Add First Category
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -151,3 +154,4 @@
     </div>
 </div>
 {% endblock %}
+

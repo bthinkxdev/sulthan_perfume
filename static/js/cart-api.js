@@ -6,11 +6,21 @@ const CartAPI = {
     // Check if user is authenticated
     isAuthenticated: false,
     
+    // Request tracking to prevent duplicate requests
+    _pendingRequests: new Set(),
+    _initialized: false,
+    
     // Initialize cart API
     init: async function() {
+        if (this._initialized) {
+            return; // Prevent multiple initializations
+        }
+        this._initialized = true;
+        
         await this.checkAuth();
         if (this.isAuthenticated) {
-            await this.loadCart();
+            // Only load cart count on init, not full cart data
+            await this.loadCartCount();
         }
     },
     
@@ -44,11 +54,26 @@ const CartAPI = {
         }
     },
     
-    // Load cart from server
-    loadCart: async function() {
+    // Load cart count only (lightweight)
+    loadCartCount: async function() {
         if (!this.isAuthenticated) {
+            return 0;
+        }
+        
+        // Check cache first (5 second cache to prevent excessive requests)
+        const cached = this._getCachedCount();
+        if (cached !== null) {
+            this.updateCartCount(cached);
+            return cached;
+        }
+        
+        // Prevent duplicate simultaneous requests
+        const requestKey = 'loadCartCount';
+        if (this._pendingRequests.has(requestKey)) {
             return null;
         }
+        
+        this._pendingRequests.add(requestKey);
         
         try {
             const response = await fetch('/api/cart/', {
@@ -62,7 +87,51 @@ const CartAPI = {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
-                    this.updateCartCount(data.item_count || 0);
+                    const count = data.item_count || 0;
+                    this._cacheCount(count);
+                    this.updateCartCount(count);
+                    return count;
+                }
+            }
+            return 0;
+        } catch (error) {
+            console.error('Failed to load cart count:', error);
+            return 0;
+        } finally {
+            this._pendingRequests.delete(requestKey);
+        }
+    },
+    
+    // Load full cart from server (only call when needed, e.g., cart page)
+    loadCart: async function() {
+        if (!this.isAuthenticated) {
+            return null;
+        }
+        
+        // Prevent duplicate simultaneous requests
+        const requestKey = 'loadCart';
+        if (this._pendingRequests.has(requestKey)) {
+            console.log('Cart load already in progress, skipping duplicate request');
+            return null;
+        }
+        
+        this._pendingRequests.add(requestKey);
+        
+        try {
+            const response = await fetch('/api/cart/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const count = data.item_count || 0;
+                    this._cacheCount(count);
+                    this.updateCartCount(count);
                     return data.cart || [];
                 }
             }
@@ -70,7 +139,39 @@ const CartAPI = {
         } catch (error) {
             console.error('Failed to load cart:', error);
             return [];
+        } finally {
+            this._pendingRequests.delete(requestKey);
         }
+    },
+    
+    // Cache management for cart count
+    _cacheCount: function(count) {
+        sessionStorage.setItem('cart_count_cache', JSON.stringify({
+            count: count,
+            timestamp: Date.now()
+        }));
+    },
+    
+    _getCachedCount: function() {
+        try {
+            const cached = sessionStorage.getItem('cart_count_cache');
+            if (!cached) return null;
+            
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+            
+            // Cache valid for 5 seconds
+            if (age < 5000) {
+                return data.count;
+            }
+        } catch (e) {
+            // Invalid cache
+        }
+        return null;
+    },
+    
+    _clearCountCache: function() {
+        sessionStorage.removeItem('cart_count_cache');
     },
     
     // Add item to cart
@@ -113,6 +214,7 @@ const CartAPI = {
             }
             
             if (data.success) {
+                this._clearCountCache(); // Clear cache after cart change
                 this.updateCartCount(data.cart_count || 0);
                 return data;
             }
@@ -145,6 +247,7 @@ const CartAPI = {
             const data = await response.json();
             
             if (data.success) {
+                this._clearCountCache(); // Clear cache after cart change
                 this.updateCartCount(data.item_count || 0);
             }
             
@@ -174,6 +277,7 @@ const CartAPI = {
             const data = await response.json();
             
             if (data.success) {
+                this._clearCountCache(); // Clear cache after cart change
                 this.updateCartCount(data.item_count || 0);
             }
             
@@ -214,6 +318,7 @@ const CartAPI = {
             if (data.success) {
                 // Clear session cart after successful merge
                 this.clearSessionCart();
+                this._clearCountCache(); // Clear cache after merge
                 this.updateCartCount(data.cart_count || 0);
             }
             
@@ -240,14 +345,24 @@ const CartAPI = {
     },
     
     // Update cart count in UI
+    _lastCartCount: null,
     updateCartCount: function(count) {
+        const normalizedCount = count || 0;
+        
+        // Only update if count has changed to prevent unnecessary events
+        if (this._lastCartCount === normalizedCount) {
+            return;
+        }
+        
+        this._lastCartCount = normalizedCount;
+        
         const cartCountElements = document.querySelectorAll('.cart-count, #cart-count, #cart-count-mobile');
         cartCountElements.forEach(el => {
-            if (el) el.textContent = count || 0;
+            if (el) el.textContent = normalizedCount;
         });
         
-        // Dispatch event for other scripts
-        window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: count } }));
+        // Dispatch event for other scripts (only when count actually changes)
+        window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: normalizedCount } }));
     },
     
     // Get CSRF token

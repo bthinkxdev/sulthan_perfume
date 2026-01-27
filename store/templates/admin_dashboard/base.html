@@ -158,6 +158,11 @@
                 </a>
             </li>
             <li>
+                <a href="{% url 'admin_category_list' %}" class="{% if 'category' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-folder"></i> Categories
+                </a>
+            </li>
+            <li>
                 <a href="{% url 'admin_product_list' %}" class="{% if 'product' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="bi bi-box-seam"></i> Products
                 </a>

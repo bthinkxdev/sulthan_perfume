@@ -451,13 +451,21 @@
     
     // Load cart on page load
     document.addEventListener('DOMContentLoaded', async function() {
+        // Wait for CartAPI to initialize
+        await CartAPI.init();
+        
         // Try to merge session cart if user just logged in
         if (CartAPI.isAuthenticated) {
             const sessionCart = CartAPI.getSessionCart();
             if (sessionCart && sessionCart.length > 0) {
-                await CartAPI.mergeSessionCart();
+                console.log('Merging session cart with', sessionCart.length, 'items');
+                const result = await CartAPI.mergeSessionCart();
+                if (result && result.success) {
+                    console.log('Cart merged successfully');
+                }
             }
         }
+        
         await loadCart();
     });
 
@@ -486,7 +494,6 @@
         }, 3000);
     }
 
-    // Load cart on page load
-    loadCart();
+    // Cart is loaded via DOMContentLoaded listener above
 </script>
 {% endblock %}

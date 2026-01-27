@@ -1,13 +1,13 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Product, ProductVariant, Combo, ComboProduct, Order
+from .models import Product, ProductVariant, Combo, ComboProduct, Order, Category
 
 
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'short_description', 'full_description',
+            'name', 'category', 'short_description', 'full_description',
             'origin', 'fragrance_notes', 'price', 'image',
             'is_featured', 'is_active'
         ]
@@ -15,6 +15,9 @@ class ProductForm(forms.ModelForm):
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter product name'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
             }),
             'short_description': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -47,6 +50,10 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-check-input'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = Category.objects.filter(is_active=True)
 
 
 class ProductVariantForm(forms.ModelForm):

@@ -451,9 +451,18 @@
             <div class="breadcrumb">
                 <a href="{% url 'store:home' %}">Home</a>
                 <span>/</span>
+                {% if product.category %}
+                <a href="{% url 'store:home' %}?category={{ product.category.slug }}#products">{{ product.category.name }}</a>
+                <span>/</span>
+                {% endif %}
                 <span>{{ product.name }}</span>
             </div>
 
+            {% if product.category %}
+            <span class="origin-badge" style="background: rgba(212, 175, 55, 0.1); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.3);">
+                <i class="fa-solid fa-folder" style="margin-right: 6px;"></i>{{ product.category.name }}
+            </span>
+            {% endif %}
             <span class="origin-badge">{{ product.get_origin_display }}</span>
             <h1 class="product-title">{{ product.name }}</h1>
             <p class="product-short-desc">{{ product.short_description }}</p>

@@ -5,6 +5,13 @@ urlpatterns = [
     # Dashboard
     path('', views.admin_dashboard, name='admin_dashboard'),
     
+    # Category URLs
+    path('categories/', views.category_list, name='admin_category_list'),
+    path('categories/create/', views.category_create, name='admin_category_create'),
+    path('categories/<uuid:pk>/', views.category_detail, name='admin_category_detail'),
+    path('categories/<uuid:pk>/edit/', views.category_edit, name='admin_category_edit'),
+    path('categories/<uuid:pk>/delete/', views.category_delete, name='admin_category_delete'),
+    
     # Product URLs
     path('products/', views.product_list, name='admin_product_list'),
     path('products/create/', views.product_create, name='admin_product_create'),

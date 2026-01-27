@@ -284,6 +284,14 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label">District <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="district" name="district" placeholder="District" required>
+                            <div class="error-message" id="districtError">Please enter district</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label class="form-label">PIN Code <span class="required">*</span></label>
                             <input type="text" class="form-input" id="pincode" name="pincode" placeholder="670001" required>
                             <div class="error-message" id="pincodeError">Please enter PIN code</div>
@@ -311,29 +319,39 @@
 
 {% block extra_js %}
 <script>
-    function loadOrderSummary() {
-        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-        
-        if (cart.length === 0) {
+    let checkoutCartItems = [];
+
+    async function loadOrderSummary() {
+        await CartAPI.init();
+        const cart = await CartAPI.loadCart();
+        checkoutCartItems = Array.isArray(cart) ? cart : [];
+
+        if (checkoutCartItems.length === 0) {
             window.location.href = '{% url "store:cart" %}';
             return;
         }
 
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const subtotal = checkoutCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const total = subtotal;
 
-        const itemsHTML = cart.map(item => `
+        const itemsHTML = checkoutCartItems.map(item => {
+            const imageUrl = item.product_image || item.combo_image || '';
+            const name = item.product_name || item.combo_title || 'Item';
+            const typeLabel = item.type === 'combo' ? 'Combo Offer' : 'Single Product';
+            const variantLabel = item.variant_ml ? ` • ${item.variant_ml}ml` : '';
+
+            return `
             <div class="summary-item">
-                ${item.image ? `<img src="${item.image}" alt="${item.name}" class="summary-item-image">` : '<div class="summary-item-image" style="background: var(--charcoal);"></div>'}
+                ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="summary-item-image">` : '<div class="summary-item-image" style="background: var(--charcoal);"></div>'}
                 <div class="summary-item-details">
-                    <div class="summary-item-name">${item.name}</div>
+                    <div class="summary-item-name">${name}</div>
                     <div class="summary-item-qty">
-                        ${item.type === 'combo' ? 'Combo Offer' : 'Single Product'}${item.variant_ml ? ` • ${item.variant_ml}ml` : ''} — Qty: ${item.quantity}
+                        ${typeLabel}${variantLabel} — Qty: ${item.quantity}
                     </div>
                 </div>
                 <div class="summary-item-price">₹${(item.price * item.quantity).toFixed(2)}</div>
             </div>
-        `).join('');
+        `}).join('');
 
         document.getElementById('orderSummary').innerHTML = `
             <h3 class="summary-title">Order Summary</h3>
@@ -391,6 +409,15 @@
             hideError('city', 'cityError');
         }
 
+        // District validation
+        const district = document.getElementById('district').value.trim();
+        if (district.length < 2) {
+            showError('district', 'districtError', 'Please enter district');
+            isValid = false;
+        } else {
+            hideError('district', 'districtError');
+        }
+
         // Pincode validation
         const pincode = document.getElementById('pincode').value.trim();
         const pincodeRegex = /^[0-9]{6}$/;
@@ -428,20 +455,13 @@
         btn.disabled = true;
         btn.innerHTML = '<span class="loading"></span> Processing...';
 
-        const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-        
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
             address_line: document.getElementById('address').value.trim(),
             city: document.getElementById('city').value.trim(),
-            pincode: document.getElementById('pincode').value.trim(),
-            cart_items: cart.map(item => ({
-                id: item.id,
-                type: item.type,
-                quantity: item.quantity,
-                variant_id: item.variant_id || null
-            }))
+            district: document.getElementById('district').value.trim(),
+            pincode: document.getElementById('pincode').value.trim()
         };
 
         try {
@@ -522,6 +542,13 @@
         const city = document.getElementById('city').value.trim();
         if (city && city.length >= 2) {
             hideError('city', 'cityError');
+        }
+    });
+
+    document.getElementById('district').addEventListener('blur', () => {
+        const district = document.getElementById('district').value.trim();
+        if (district && district.length >= 2) {
+            hideError('district', 'districtError');
         }
     });
 

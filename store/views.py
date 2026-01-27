@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.decorators import method_decorator
@@ -13,10 +13,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, User, OTP, Address, Cart, CartItem
+from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, User, OTP, Address, Cart, CartItem, Category
 from .auth_utils import check_otp_rate_limit, set_otp_rate_limit, get_client_ip
 import json
 from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_site_config():
@@ -34,9 +37,61 @@ def get_site_config():
     return config
 
 
+def send_admin_order_notification(order):
+    """Send email notification to admin when new order is created"""
+    try:
+        site_config = get_site_config()
+        admin_email = site_config.email
+        
+        # Get domain for the email links
+        domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost:8000'
+        
+        # Prepare context for email template
+        context = {
+            'order': order,
+            'domain': domain,
+            'site_config': site_config,
+        }
+        
+        # Render email templates
+        subject = f'New Order #{order.order_number} - Sulthan Fragrance'
+        text_content = render_to_string('store/emails/admin_new_order.txt', context)
+        html_content = render_to_string('store/emails/admin_new_order.html', context)
+        
+        # Create email message
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[admin_email]
+        )
+        email.attach_alternative(html_content, "text/html")
+        
+        # Send email
+        email.send(fail_silently=False)
+        logger.info(f"Admin notification email sent for order {order.order_number}")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send admin notification for order {order.order_number}: {str(e)}")
+        # Don't fail the order creation if email fails
+        return False
+
+
 def home(request):
     """Landing page with products and combos"""
-    products = Product.objects.filter(is_active=True).prefetch_related('variants')
+    # Get all categories with active products
+    categories = Category.objects.filter(is_active=True).prefetch_related('products')
+    
+    # Filter by category if specified
+    category_slug = request.GET.get('category')
+    category_filter = None
+    if category_slug:
+        category_filter = get_object_or_404(Category, slug=category_slug, is_active=True)
+        products = Product.objects.filter(is_active=True, category=category_filter).prefetch_related('variants')
+    else:
+        products = Product.objects.filter(is_active=True).prefetch_related('variants')
+    
     combos = Combo.objects.filter(is_active=True).prefetch_related(
         'combo_products__product__variants',
         'combo_products__variant'
@@ -51,6 +106,8 @@ def home(request):
         'featured_product': featured_product,
         'products': products,
         'combos': combos,
+        'categories': categories,
+        'current_category': category_filter,
         'site_config': site_config,
         'show_login_modal': show_login_modal,
         'next_url': request.GET.get('next', '/'),
@@ -61,13 +118,31 @@ def home(request):
 def product_detail(request, slug):
     """Product detail page"""
     product = get_object_or_404(
-        Product.objects.prefetch_related('variants'),
+        Product.objects.prefetch_related('variants').select_related('category'),
         slug=slug,
         is_active=True
     )
-    related_products = Product.objects.filter(
-        is_active=True
-    ).exclude(id=product.id).prefetch_related('variants')[:3]
+    
+    # Get related products from same category first, then others
+    if product.category:
+        related_products = Product.objects.filter(
+            is_active=True,
+            category=product.category
+        ).exclude(id=product.id).prefetch_related('variants')[:3]
+        
+        # If not enough products in same category, add more from other categories
+        if related_products.count() < 3:
+            additional = Product.objects.filter(
+                is_active=True
+            ).exclude(id=product.id).exclude(
+                id__in=[p.id for p in related_products]
+            ).prefetch_related('variants')[:3 - related_products.count()]
+            related_products = list(related_products) + list(additional)
+    else:
+        related_products = Product.objects.filter(
+            is_active=True
+        ).exclude(id=product.id).prefetch_related('variants')[:3]
+    
     site_config = get_site_config()
     
     context = {
@@ -115,10 +190,26 @@ def cart(request):
 def checkout(request):
     """Checkout page - requires authentication"""
     site_config = get_site_config()
+    
+    # Get cart with items prefetched
     cart_obj = get_or_create_cart(request.user)
     
-    if not cart_obj or cart_obj.items.count() == 0:
-        messages.warning(request, 'Your cart is empty')
+    # Debug: Check if cart exists and has items
+    if not cart_obj:
+        messages.error(request, 'Unable to retrieve your cart. Please try again.')
+        return redirect('store:cart')
+    
+    # Prefetch related items for better performance
+    cart_obj = Cart.objects.prefetch_related(
+        'items__product__variants',
+        'items__variant',
+        'items__combo'
+    ).get(id=cart_obj.id)
+    
+    item_count = cart_obj.items.count()
+    
+    if item_count == 0:
+        messages.warning(request, 'Your cart is empty. Please add items before checking out.')
         return redirect('store:cart')
     
     # Get user addresses
@@ -145,7 +236,7 @@ def place_order(request):
             return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
         
         # Validate required fields
-        required_fields = ['customer_name', 'phone', 'address_line', 'city', 'pincode']
+        required_fields = ['customer_name', 'phone', 'address_line', 'city', 'district', 'pincode']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
@@ -162,6 +253,7 @@ def place_order(request):
                 phone=data['phone'],
                 address_line=data['address_line'],
                 city=data['city'],
+                district=data['district'],
                 pincode=data['pincode'],
                 total_amount=total_amount,
                 payment_status='pending'
@@ -180,9 +272,22 @@ def place_order(request):
                     price_at_purchase=cart_item.price_at_time
                 )
             
-            # Mark cart as checked out
+            # Mark cart as checked out and clear items
             cart.status = 'checked_out'
             cart.save()
+            
+            # Create a new active cart for the user
+            Cart.objects.create(
+                user=request.user,
+                status='active'
+            )
+        
+        # Send email notification to admin
+        try:
+            send_admin_order_notification(order)
+        except Exception as e:
+            logger.error(f"Failed to send admin notification: {str(e)}")
+            # Continue even if email fails
         
         return JsonResponse({
             'success': True,
@@ -695,7 +800,7 @@ def add_address(request):
     try:
         data = json.loads(request.body)
         
-        required_fields = ['name', 'phone', 'address_line', 'city', 'pincode']
+        required_fields = ['name', 'phone', 'address_line', 'city', 'district', 'pincode']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
@@ -706,6 +811,7 @@ def add_address(request):
             phone=data['phone'],
             address_line=data['address_line'],
             city=data['city'],
+            district=data['district'],
             pincode=data['pincode'],
             is_default=data.get('is_default', False)
         )
@@ -719,6 +825,7 @@ def add_address(request):
                 'phone': address.phone,
                 'address_line': address.address_line,
                 'city': address.city,
+                'district': address.district,
                 'pincode': address.pincode,
                 'is_default': address.is_default
             }
@@ -740,6 +847,7 @@ def update_address(request, address_id):
         address.phone = data.get('phone', address.phone)
         address.address_line = data.get('address_line', address.address_line)
         address.city = data.get('city', address.city)
+        address.district = data.get('district', address.district)
         address.pincode = data.get('pincode', address.pincode)
         address.is_default = data.get('is_default', address.is_default)
         address.save()

@@ -947,6 +947,24 @@
             <p class="section-subtitle">Discover our curated selection of luxury fragrances, each crafted to perfection with the finest ingredients.</p>
         </div>
 
+        <!-- Category Filter -->
+        {% if categories %}
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 40px;">
+            <a href="{% url 'store:home' %}#products" 
+               class="{% if not current_category %}btn-primary{% else %}btn-secondary{% endif %}"
+               style="padding: 10px 20px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.3s;">
+                All Products
+            </a>
+            {% for category in categories %}
+            <a href="?category={{ category.slug }}#products" 
+               class="{% if current_category.id == category.id %}btn-primary{% else %}btn-secondary{% endif %}"
+               style="padding: 10px 20px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.3s;">
+                {{ category.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="products-grid">
             {% for product in products %}
             <div class="product-card fade-in" onclick="window.location.href='{% url 'store:product_detail' product.slug %}'">
@@ -1104,21 +1122,14 @@
         CartAPI.showNotification(message);
     }
     
-    // Update cart count function (for backward compatibility)
-    function updateCartCount() {
-        if (window.CartAPI && CartAPI.isAuthenticated) {
-            CartAPI.loadCart();
-        } else {
-            // Fallback to sessionStorage for guests
-            const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
-            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            CartAPI.updateCartCount(count);
-        }
-    }
+    // Update cart count function (for backward compatibility) - REMOVED to prevent infinite loop
+    // CartAPI now handles cart count updates automatically
     
-    // Merge session cart when user logs in
+    // Merge session cart when user logs in (only once on first load)
+    let hasAttemptedMerge = false;
     window.addEventListener('cart-updated', async function() {
-        if (CartAPI.isAuthenticated) {
+        if (CartAPI.isAuthenticated && !hasAttemptedMerge) {
+            hasAttemptedMerge = true;
             // Try to merge session cart if exists
             const sessionCart = CartAPI.getSessionCart();
             if (sessionCart && sessionCart.length > 0) {
