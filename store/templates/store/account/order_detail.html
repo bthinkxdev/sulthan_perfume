@@ -24,7 +24,13 @@
                             {% endif %}
                         </div>
                         <div style="flex: 1;">
-                            <h3 style="font-size: 16px; margin-bottom: 4px;">{{ item.product.name|default:item.combo.title }}</h3>
+                            <h3 style="font-size: 16px; margin-bottom: 4px;">
+                                {% if item.product %}
+                                    {{ item.product.name }}
+                                {% elif item.combo %}
+                                    {{ item.combo.title }}
+                                {% endif %}
+                            </h3>
                             {% if item.variant %}
                                 <p style="color: var(--text-muted); font-size: 14px;">{{ item.variant.ml }}ml</p>
                             {% endif %}
