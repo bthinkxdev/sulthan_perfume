@@ -82,6 +82,11 @@
         box-shadow: 0 0 0 3px rgba(196, 111, 68, 0.12);
     }
 
+    .form-input.error:focus {
+        border-color: #ff3b30;
+        box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.15);
+    }
+
     .form-input::placeholder {
         color: var(--text-muted);
     }
@@ -97,10 +102,39 @@
         font-size: 13px;
         margin-top: 6px;
         display: none;
+        font-weight: 500;
+        padding: 6px 12px;
+        background: rgba(255, 59, 48, 0.1);
+        border-radius: 8px;
+        border-left: 3px solid #ff3b30;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .error-message::before {
+        content: '⚠ ';
+        font-weight: 700;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .form-input.error {
         border-color: #ff3b30;
+        animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
     }
 
     .order-summary-section {
@@ -233,6 +267,26 @@
         }
     }
 
+    .form-alert {
+        display: none;
+        background: rgba(255, 59, 48, 0.1);
+        border: 1px solid #ff3b30;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+        color: #ff3b30;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .form-alert::before {
+        content: '⚠ ';
+        font-size: 16px;
+        font-weight: 700;
+        margin-right: 8px;
+    }
+
     @media (max-width: 640px) {
         .checkout-page {
             padding: 80px var(--page-padding) 60px;
@@ -255,6 +309,10 @@
             <!-- Checkout Form -->
             <div class="checkout-form">
                 <h2 class="form-section-title">Delivery Information</h2>
+                
+                <div class="form-alert" id="formAlert">
+                    Please fix the errors below to proceed with your order.
+                </div>
                 
                 <form id="checkoutForm">
                     {% csrf_token %}
@@ -374,11 +432,13 @@
 
     function validateForm() {
         let isValid = true;
+        let firstErrorField = null;
 
         // Name validation
         const name = document.getElementById('customerName').value.trim();
         if (name.length < 2) {
             showError('customerName', 'nameError', 'Please enter a valid name');
+            if (!firstErrorField) firstErrorField = 'customerName';
             isValid = false;
         } else {
             hideError('customerName', 'nameError');
@@ -389,6 +449,7 @@
         const phoneRegex = /^[+]?[0-9]{10,15}$/;
         if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
             showError('phone', 'phoneError', 'Please enter a valid phone number');
+            if (!firstErrorField) firstErrorField = 'phone';
             isValid = false;
         } else {
             hideError('phone', 'phoneError');
@@ -398,6 +459,7 @@
         const address = document.getElementById('address').value.trim();
         if (address.length < 10) {
             showError('address', 'addressError', 'Please enter a complete address');
+            if (!firstErrorField) firstErrorField = 'address';
             isValid = false;
         } else {
             hideError('address', 'addressError');
@@ -407,6 +469,7 @@
         const city = document.getElementById('city').value.trim();
         if (city.length < 2) {
             showError('city', 'cityError', 'Please enter city');
+            if (!firstErrorField) firstErrorField = 'city';
             isValid = false;
         } else {
             hideError('city', 'cityError');
@@ -416,6 +479,7 @@
         const district = document.getElementById('district').value.trim();
         if (district.length < 2) {
             showError('district', 'districtError', 'Please enter district');
+            if (!firstErrorField) firstErrorField = 'district';
             isValid = false;
         } else {
             hideError('district', 'districtError');
@@ -426,9 +490,22 @@
         const pincodeRegex = /^[0-9]{6}$/;
         if (!pincodeRegex.test(pincode)) {
             showError('pincode', 'pincodeError', 'Please enter a valid 6-digit PIN code');
+            if (!firstErrorField) firstErrorField = 'pincode';
             isValid = false;
         } else {
             hideError('pincode', 'pincodeError');
+        }
+
+        // Show/hide form alert
+        const formAlert = document.getElementById('formAlert');
+        if (!isValid) {
+            formAlert.style.display = 'block';
+            // Scroll to and focus on the first error field
+            if (firstErrorField) {
+                scrollToError(firstErrorField);
+            }
+        } else {
+            formAlert.style.display = 'none';
         }
 
         return isValid;
@@ -447,6 +524,31 @@
         const error = document.getElementById(errorId);
         input.classList.remove('error');
         error.style.display = 'none';
+    }
+
+    function scrollToError(inputId) {
+        const input = document.getElementById(inputId);
+        if (input) {
+            // Calculate the position to scroll to (with offset for fixed header)
+            const offsetTop = input.getBoundingClientRect().top + window.pageYOffset;
+            const headerOffset = 120; // Adjust based on your header height
+            const scrollPosition = offsetTop - headerOffset;
+
+            // Smooth scroll to the field
+            window.scrollTo({
+                top: scrollPosition,
+                behavior: 'smooth'
+            });
+
+            // Focus on the field after a short delay to ensure scroll completes
+            setTimeout(() => {
+                input.focus();
+                // Re-trigger the shake animation
+                input.classList.remove('error');
+                void input.offsetWidth; // Force reflow
+                input.classList.add('error');
+            }, 300);
+        }
     }
 
     async function placeOrder() {
@@ -482,7 +584,41 @@
             const result = await response.json();
 
             if (!result.success) {
-                alert('Error: ' + (result.error || 'Failed to create order'));
+                // Handle field-specific errors if provided
+                if (result.field_errors) {
+                    let firstErrorField = null;
+                    const fieldMapping = {
+                        'customer_name': 'customerName',
+                        'phone': 'phone',
+                        'address_line': 'address',
+                        'city': 'city',
+                        'district': 'district',
+                        'pincode': 'pincode'
+                    };
+                    const errorMapping = {
+                        'customer_name': 'nameError',
+                        'phone': 'phoneError',
+                        'address_line': 'addressError',
+                        'city': 'cityError',
+                        'district': 'districtError',
+                        'pincode': 'pincodeError'
+                    };
+
+                    for (const [field, message] of Object.entries(result.field_errors)) {
+                        const inputId = fieldMapping[field];
+                        const errorId = errorMapping[field];
+                        if (inputId && errorId) {
+                            showError(inputId, errorId, message);
+                            if (!firstErrorField) firstErrorField = inputId;
+                        }
+                    }
+
+                    if (firstErrorField) {
+                        scrollToError(firstErrorField);
+                    }
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to create order'));
+                }
                 btn.disabled = false;
                 btn.textContent = 'Place Order';
                 return;

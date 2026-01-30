@@ -175,6 +175,57 @@
         flex-wrap: wrap;
     }
 
+    .hero-categories {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 0;
+    }
+
+    .hero-cat-pill {
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+
+    /* Style all hero buttons the same - solid filled like Explore Collection */
+    .hero .hero-buttons .btn-primary,
+    .hero .hero-buttons .btn-secondary,
+    .hero .hero-cat-pill {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 14px;
+        font-size: 15px;
+        letter-spacing: 0.8px;
+        box-shadow: 0 10px 30px rgba(30, 20, 14, 0.1);
+    }
+
+    /* Inactive state for category pills */
+    .hero .hero-cat-pill:not(.active) {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--primary);
+        border: 1px solid var(--primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Hover effects */
+    .hero .hero-buttons .btn-primary:hover,
+    .hero .hero-buttons .btn-secondary:hover,
+    .hero .hero-cat-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(30, 20, 14, 0.15);
+    }
+
+    .hero .hero-cat-pill:not(.active):hover {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
     .hero-product {
         animation: fadeInRight 0.8s ease-out;
         display: flex;
@@ -633,8 +684,9 @@
 
     @media (max-width: 768px) {
         .hero {
-            padding: 36px var(--page-padding) 52px;
+            padding: 32px var(--page-padding) 44px;
             background: var(--bg-soft);
+            min-height: auto;
         }
 
         .hero-content {
@@ -653,6 +705,24 @@
             max-width: 100%;
         }
 
+        .section {
+            padding: 60px 0 50px;
+        }
+
+        .section-header {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 32px;
+            line-height: 1.3;
+        }
+
+        .section-subtitle {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
         .hero-banner {
             display: block;
             order: 1;
@@ -667,11 +737,46 @@
         }
 
         .hero-text h1 {
-            font-size: 34px;
+            font-size: 32px;
+            line-height: 1.15;
+            margin-bottom: 16px;
         }
 
         .hero-text p {
-            font-size: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .hero-eyebrow {
+            margin-bottom: 14px;
+            font-size: 11px;
+            padding: 8px 14px;
+        }
+
+        /* Mobile: 2 buttons per row with fixed size */
+        .hero-buttons {
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .hero-buttons .btn-primary,
+        .hero-buttons .btn-secondary,
+        .hero-buttons .hero-cat-pill {
+            flex: 1 1 calc(50% - 5px);
+            min-width: calc(50% - 5px);
+            max-width: calc(50% - 5px);
+            padding: 12px 8px !important;
+            font-size: 13px !important;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hero-categories {
+            margin-top: 0;
+            gap: 10px;
         }
 
         .hero-product-card {
@@ -771,12 +876,40 @@
         }
 
         .section {
-            padding: 56px 0 44px;
+            padding: 36px 0 28px;
+        }
+
+        .section-header {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 26px;
+            margin-bottom: 8px;
+            line-height: 1.2;
+            letter-spacing: -0.3px;
+            padding: 0 4px;
+        }
+
+        .section-subtitle {
+            font-size: 13px;
+            line-height: 1.45;
+            max-width: 100%;
+            padding: 0 12px;
+            color: var(--text-muted);
+        }
+
+        .why-choose {
+            padding: 32px 18px;
         }
 
         .features-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 20px;
+        }
+
+        .feature {
+            padding: 20px 16px;
         }
 
         .hero-product {
@@ -888,6 +1021,47 @@
             border-radius: 10px;
         }
     }
+
+    /* Extra small mobile optimization */
+    @media (max-width: 380px) {
+        .section {
+            padding: 32px 0 24px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 6px;
+            letter-spacing: -0.2px;
+        }
+
+        .section-subtitle {
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 0 8px;
+        }
+
+        .hero {
+            padding: 28px var(--page-padding) 36px;
+        }
+
+        .hero-text h1 {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .hero-text p {
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .why-choose {
+            padding: 28px 16px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -909,33 +1083,18 @@
             <h1>12 Hours<br>Minimum Lasting<br>Guarantee</h1>
             <p>Our perfume oil is a blend of 100% pure Provence (France) grown essential oils</p>
             <div class="hero-buttons">
-                <a href="#products" class="btn-primary">Explore Collection</a>
-                <a href="#combos" class="btn-secondary">View Combos</a>
+                <a href="{% url 'store:home' %}#products" class="btn-primary">Explore Collection</a>
+                <a href="{% url 'store:home' %}#combos" class="btn-secondary">View Combos</a>
+                {% if categories %}
+                <a href="{% url 'store:home' %}#products" 
+                   class="hero-cat-pill {% if not current_category %}active{% endif %}">All Products</a>
+                {% for category in categories %}
+                <a href="?category={{ category.slug }}#products" 
+                   class="hero-cat-pill {% if current_category.id == category.id %}active{% endif %}">{{ category.name }}</a>
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
-        
-        {% if featured_product %}
-        {% with first_variant=featured_product.variants.all|first %}
-            <div class="hero-product">
-                <div class="hero-product-card">
-                    <div class="hero-product-media">
-                        <img src="{{ featured_product.image.url }}" alt="{{ featured_product.name }}" class="hero-product-image">
-                    </div>
-                    <div class="hero-product-info">
-                        {% comment %} <span class="product-origin">{{ featured_product.get_origin_display }}</span> {% endcomment %}
-                        <div class="hero-product-head">
-                            <h3 class="product-name">{{ featured_product.name }}</h3>
-                            <span class="product-price">
-                                ₹{{ first_variant.price|default:featured_product.price }}{% if first_variant %} • {{ first_variant.ml }}ml{% endif %}
-                            </span>
-                        </div>
-                        <p class="product-desc">{{ featured_product.short_description }}</p>
-                        <button class="add-to-cart-btn hero-add-to-cart" onclick="addToCart('{{ featured_product.id }}', 'product', '{{ featured_product.name|escapejs }}', '{{ first_variant.price|default:featured_product.price }}', '{{ featured_product.image.url }}', '{{ first_variant.id|default:'' }}', '{{ first_variant.ml|default:'' }}')">Add to Cart</button>
-                    </div>
-                </div>
-            </div>
-        {% endwith %}
-        {% endif %}
     </div>
 </section>
 
@@ -947,23 +1106,7 @@
             <p class="section-subtitle">Discover our curated selection of luxury fragrances, each crafted to perfection with the finest ingredients.</p>
         </div>
 
-        <!-- Category Filter -->
-        {% if categories %}
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 40px;">
-            <a href="{% url 'store:home' %}#products" 
-               class="{% if not current_category %}btn-primary{% else %}btn-secondary{% endif %}"
-               style="padding: 10px 20px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.3s;">
-                All Products
-            </a>
-            {% for category in categories %}
-            <a href="?category={{ category.slug }}#products" 
-               class="{% if current_category.id == category.id %}btn-primary{% else %}btn-secondary{% endif %}"
-               style="padding: 10px 20px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.3s;">
-                {{ category.name }}
-            </a>
-            {% endfor %}
-        </div>
-        {% endif %}
+
 
         <div class="products-grid">
             {% for product in products %}
