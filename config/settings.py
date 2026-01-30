@@ -139,8 +139,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Use Django's built-in User model to avoid migration ordering issues
-AUTH_USER_MODEL = 'auth.User'
+# Custom User Model
+AUTH_USER_MODEL = 'store.User'
 
 # Login URL - redirect to home page where OTP modal will be shown
 LOGIN_URL = '/'
