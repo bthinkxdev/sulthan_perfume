@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.utils.text import slugify
@@ -235,7 +236,7 @@ class Order(models.Model):
     order_number = models.CharField(max_length=20, unique=True, editable=False)
     
     # Link to user if authenticated (optional for backward compatibility)
-    user = models.ForeignKey('User', related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
     
     # Link to cart (for payment tracking)
     cart = models.ForeignKey('Cart', related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
@@ -457,7 +458,7 @@ class OTP(models.Model):
 class Address(models.Model):
     """User address model"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='addresses', on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='addresses', on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     address_line = models.TextField()
@@ -491,7 +492,7 @@ class Cart(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='carts', on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='carts', on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
