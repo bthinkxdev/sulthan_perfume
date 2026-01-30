@@ -140,7 +140,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
-AUTH_USER_MODEL = 'store.User'
+AUTH_USER_MODEL = 'auth.User'
 
 # Login URL - redirect to home page where OTP modal will be shown
 LOGIN_URL = '/'
