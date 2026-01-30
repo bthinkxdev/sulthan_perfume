@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.mail import send_mail, EmailMultiAlternatives
@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, User, OTP, Address, Cart, CartItem, Category
+from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, OTP, Address, Cart, CartItem, Category
 from .auth_utils import check_otp_rate_limit, set_otp_rate_limit, get_client_ip
 import json
 from datetime import timedelta
@@ -26,6 +26,38 @@ logger = logging.getLogger(__name__)
 
 # Initialize Razorpay client
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+def _user_has_field(user_or_model, field_name):
+    model = user_or_model if isinstance(user_or_model, type) else user_or_model.__class__
+    return any(field.name == field_name for field in model._meta.get_fields())
+
+
+def _get_user_display_name(user):
+    if _user_has_field(user, "name") and user.name:
+        return user.name
+    if _user_has_field(user, "first_name") and user.first_name:
+        return user.first_name
+    if hasattr(user, "get_full_name") and user.get_full_name():
+        return user.get_full_name()
+    if getattr(user, "email", None):
+        return user.email.split("@")[0]
+    return "User"
+
+
+def _set_user_name(user, name):
+    if not name:
+        return
+    if _user_has_field(user, "name"):
+        user.name = name
+    elif _user_has_field(user, "first_name"):
+        user.first_name = name
+
+
+def _set_user_phone(user, phone):
+    if not phone:
+        return
+    if _user_has_field(user, "phone"):
+        user.phone = phone
 
 
 def get_site_config():
@@ -614,11 +646,22 @@ def verify_otp(request):
         if not otp.verify(otp_code):
             return JsonResponse({'success': False, 'error': 'Invalid or expired OTP'}, status=400)
         
-        # Get or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={'name': email.split('@')[0]}
-        )
+        # Get or create user (supports built-in or custom user models)
+        UserModel = get_user_model()
+        user = UserModel.objects.filter(email__iexact=email).first()
+        if not user:
+            create_kwargs = {}
+            username_field = getattr(UserModel, "USERNAME_FIELD", None)
+            if username_field:
+                create_kwargs[username_field] = email
+            # Only set email if the model has an email field
+            if _user_has_field(UserModel, "email"):
+                create_kwargs["email"] = email
+            user = UserModel(**create_kwargs)
+            if hasattr(user, "set_unusable_password"):
+                user.set_unusable_password()
+            _set_user_name(user, email.split("@")[0])
+            user.save()
         
         # Login user
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
@@ -631,7 +674,7 @@ def verify_otp(request):
             'next': next_url,
             'user': {
                 'email': user.email,
-                'name': user.name or user.email.split('@')[0]
+                'name': _get_user_display_name(user)
             }
         })
         
@@ -1096,17 +1139,17 @@ def update_profile(request):
         data = json.loads(request.body)
         
         user = request.user
-        user.name = data.get('name', user.name)
-        user.phone = data.get('phone', user.phone)
+        _set_user_name(user, data.get('name'))
+        _set_user_phone(user, data.get('phone'))
         user.save()
         
         return JsonResponse({
             'success': True,
             'message': 'Profile updated successfully',
             'user': {
-                'email': user.email,
-                'name': user.name,
-                'phone': user.phone
+                'email': getattr(user, 'email', None),
+                'name': _get_user_display_name(user),
+                'phone': getattr(user, 'phone', None)
             }
         })
         
