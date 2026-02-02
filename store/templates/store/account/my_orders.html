@@ -16,6 +16,13 @@
                         <div>
                             <h3 style="font-size: 20px; margin-bottom: 8px;">Order #{{ order.order_number }}</h3>
                             <p style="color: var(--text-muted); font-size: 14px;">Placed on {{ order.created_at|date:"F d, Y" }}</p>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                {% if order.payment_method == 'cod' %}
+                                    💵 Cash on Delivery
+                                {% else %}
+                                    💳 Online Payment
+                                {% endif %}
+                            </p>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 24px; font-weight: 600; color: var(--primary);">₹{{ order.total_amount }}</div>

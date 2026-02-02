@@ -334,6 +334,17 @@
                 </div>
                 
                 <div class="summary-field">
+                    <p class="summary-label">Payment Method</p>
+                    <p class="summary-value">
+                        {% if order.payment_method == 'cod' %}
+                            💵 Cash on Delivery
+                        {% else %}
+                            💳 Online Payment
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="summary-field">
                     <p class="summary-label">Payment Status</p>
                     <span class="status-badge status-{{ order.payment_status }}">{{ order.payment_status }}</span>
                 </div>

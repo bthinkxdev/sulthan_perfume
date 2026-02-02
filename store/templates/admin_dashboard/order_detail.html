@@ -83,6 +83,16 @@
                     <h6>Payment Information</h6>
                     <table class="table table-sm">
                         <tr>
+                            <th width="40%">Payment Method:</th>
+                            <td>
+                                {% if order.payment_method == 'cod' %}
+                                    <span class="badge bg-info">💵 Cash on Delivery</span>
+                                {% else %}
+                                    <span class="badge bg-primary">💳 Online Payment</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
                             <th width="40%">Payment Status:</th>
                             <td>
                                 {% if order.payment_status == 'completed' %}

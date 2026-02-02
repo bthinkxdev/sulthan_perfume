@@ -297,6 +297,106 @@
             padding: 24px;
         }
     }
+    
+    /* Payment Method Selection Styles */
+    .payment-methods {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .payment-option {
+        position: relative;
+        display: block;
+        cursor: pointer;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        background: var(--white);
+        transition: var(--transition-smooth);
+    }
+    
+    .payment-option:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(196, 111, 68, 0.1);
+    }
+    
+    .payment-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .payment-option input[type="radio"]:checked ~ .payment-option-content {
+        border-color: var(--primary);
+    }
+    
+    .payment-option input[type="radio"]:checked ~ .payment-option-content::before {
+        content: '✓';
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 28px;
+        height: 28px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+        animation: scaleIn 0.2s ease-out;
+    }
+    
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+        }
+        to {
+            transform: scale(1);
+        }
+    }
+    
+    .payment-option-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+        transition: var(--transition-smooth);
+    }
+    
+    .payment-option-icon {
+        font-size: 32px;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--light-gray);
+        border-radius: 12px;
+        flex-shrink: 0;
+    }
+    
+    .payment-option-details {
+        flex: 1;
+    }
+    
+    .payment-option-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+    }
+    
+    .payment-option-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    
+    .payment-option input[type="radio"]:checked ~ .payment-option-content .payment-option-title {
+        color: var(--primary);
+    }
 </style>
 {% endblock %}
 
@@ -356,6 +456,34 @@
                         </div>
                     </div>
                 </form>
+                
+                <hr style="margin: 32px 0; border-color: var(--border);">
+                
+                <!-- Payment Method Selection -->
+                <h2 class="form-section-title">Payment Method</h2>
+                <div class="payment-methods">
+                    <label class="payment-option">
+                        <input type="radio" name="payment_method" value="online" checked>
+                        <div class="payment-option-content">
+                            <div class="payment-option-icon">💳</div>
+                            <div class="payment-option-details">
+                                <div class="payment-option-title">Online Payment</div>
+                                <div class="payment-option-desc">Pay securely using UPI, Cards, Net Banking</div>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment_method" value="cod">
+                        <div class="payment-option-content">
+                            <div class="payment-option-icon">💵</div>
+                            <div class="payment-option-details">
+                                <div class="payment-option-title">Cash on Delivery</div>
+                                <div class="payment-option-desc">Pay when you receive your order</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <!-- Order Summary -->
@@ -556,6 +684,63 @@
             return;
         }
 
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        
+        if (paymentMethod === 'cod') {
+            await placeCODOrder();
+        } else {
+            await placeOnlineOrder();
+        }
+    }
+    
+    async function placeCODOrder() {
+        const btn = document.getElementById('placeOrderBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading"></span> Placing Order...';
+
+        const orderData = {
+            customer_name: document.getElementById('customerName').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            address_line: document.getElementById('address').value.trim(),
+            city: document.getElementById('city').value.trim(),
+            district: document.getElementById('district').value.trim(),
+            pincode: document.getElementById('pincode').value.trim()
+        };
+
+        try {
+            const response = await fetch('{% url "store:create_cod_order" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Clear cart
+                sessionStorage.removeItem('cart');
+                window.dispatchEvent(new Event('cart-updated'));
+                
+                // Redirect to confirmation
+                window.location.href = '{% url "store:order_confirmation" "ORDER_NUMBER" %}'.replace('ORDER_NUMBER', result.order_number);
+            } else {
+                alert('Error: ' + (result.error || 'Failed to create order'));
+                btn.disabled = false;
+                btn.textContent = 'Place Order';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to place order. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Place Order';
+        }
+    }
+
+    async function placeOnlineOrder() {
         const btn = document.getElementById('placeOrderBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="loading"></span> Creating Order...';

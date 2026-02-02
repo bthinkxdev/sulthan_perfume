@@ -231,6 +231,11 @@ class Order(models.Model):
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('online', 'Online Payment'),
+        ('cod', 'Cash on Delivery'),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order_number = models.CharField(max_length=20, unique=True, editable=False)
@@ -240,6 +245,9 @@ class Order(models.Model):
     
     # Link to cart (for payment tracking)
     cart = models.ForeignKey('Cart', related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Payment method
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='online')
     
     # Payment fields
     payment_status = models.CharField(max_length=20, default='pending', choices=[

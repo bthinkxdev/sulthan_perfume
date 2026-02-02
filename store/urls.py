@@ -25,6 +25,7 @@ urlpatterns = [
     # Checkout (requires authentication)
     path('checkout/', views.checkout, name='checkout'),
     path('api/create-razorpay-order/', views.create_razorpay_order, name='create_razorpay_order'),
+    path('api/create-cod-order/', views.create_cod_order, name='create_cod_order'),
     path('api/verify-payment/', views.verify_payment, name='verify_payment'),
     path('api/payment-failed/', views.payment_failed, name='payment_failed'),
     path('api/razorpay-webhook/', views.razorpay_webhook, name='razorpay_webhook'),

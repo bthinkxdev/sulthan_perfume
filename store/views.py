@@ -295,6 +295,7 @@ def create_razorpay_order(request):
                 district=data['district'],
                 pincode=data['pincode'],
                 total_amount=total_amount,
+                payment_method='online',
                 payment_status='pending',
                 status='new'
             )
@@ -345,6 +346,89 @@ def create_razorpay_order(request):
         
     except Exception as e:
         logger.error(f"Error creating Razorpay order: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_cod_order(request):
+    """Create Cash on Delivery order"""
+    try:
+        data = json.loads(request.body)
+        
+        # Get user's active cart
+        cart = get_or_create_cart(request.user)
+        if not cart or cart.items.count() == 0:
+            return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
+        
+        # Validate required fields
+        required_fields = ['customer_name', 'phone', 'address_line', 'city', 'district', 'pincode']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
+        
+        # Calculate total from cart items
+        total_amount = float(cart.get_total())
+        
+        # Create order in our database
+        with transaction.atomic():
+            order = Order.objects.create(
+                user=request.user,
+                cart=cart,
+                customer_name=data['customer_name'],
+                phone=data['phone'],
+                address_line=data['address_line'],
+                city=data['city'],
+                district=data['district'],
+                pincode=data['pincode'],
+                total_amount=total_amount,
+                payment_method='cod',
+                payment_status='pending',  # Will be completed on delivery
+                payment_reference='COD',
+                status='new'
+            )
+            
+            # Create order items from cart
+            for cart_item in cart.items.select_related('product', 'variant', 'combo').all():
+                OrderItem.objects.create(
+                    order=order,
+                    item_type=cart_item.item_type,
+                    product=cart_item.product,
+                    combo=cart_item.combo,
+                    variant=cart_item.variant,
+                    variant_ml=cart_item.variant_ml,
+                    quantity=cart_item.quantity,
+                    price_at_purchase=cart_item.price_at_time
+                )
+            
+            # Mark cart as checked out
+            cart.status = 'checked_out'
+            cart.save()
+            
+            # Create a new active cart for the user
+            Cart.objects.get_or_create(
+                user=request.user,
+                status='active'
+            )
+        
+        # Send email notification to admin
+        try:
+            send_admin_order_notification(order)
+        except Exception as e:
+            logger.error(f"Failed to send admin notification: {str(e)}")
+            # Continue even if email fails
+        
+        logger.info(f"COD order created: {order.order_number}")
+        
+        return JsonResponse({
+            'success': True,
+            'order_number': order.order_number,
+            'order_id': str(order.id),
+            'message': 'Order placed successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating COD order: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 

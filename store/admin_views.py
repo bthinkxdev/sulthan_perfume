@@ -518,6 +518,11 @@ def order_list(request):
     if payment_status_filter:
         orders = orders.filter(payment_status=payment_status_filter)
     
+    # Filter by payment method
+    payment_method_filter = request.GET.get('payment_method', '')
+    if payment_method_filter:
+        orders = orders.filter(payment_method=payment_method_filter)
+    
     # Pagination
     paginator = Paginator(orders, 15)
     page_number = request.GET.get('page')
@@ -532,13 +537,18 @@ def order_list(request):
         ('cancelled', 'Cancelled'),
     ]
     
+    # Payment method choices
+    payment_method_choices = Order.PAYMENT_METHOD_CHOICES
+    
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
         'status_filter': status_filter,
         'payment_status_filter': payment_status_filter,
+        'payment_method_filter': payment_method_filter,
         'status_choices': Order.ORDER_STATUS,
         'payment_status_choices': payment_status_choices,
+        'payment_method_choices': payment_method_choices,
     }
     return render(request, 'admin_dashboard/order_list.html', context)
 

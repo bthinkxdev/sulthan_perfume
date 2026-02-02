@@ -230,6 +230,17 @@
             </div>
 
             <div class="detail-row">
+                <span class="detail-label">Payment Method</span>
+                <span class="detail-value">
+                    {% if order.payment_method == 'cod' %}
+                        💵 Cash on Delivery
+                    {% else %}
+                        💳 Online Payment
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="detail-row">
                 <span class="detail-label">Order Total</span>
                 <span class="detail-value">₹{{ order.total_amount }}</span>
             </div>
