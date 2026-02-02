@@ -276,6 +276,18 @@ class Order(models.Model):
 
     total_amount = models.DecimalField(max_digits=10, decimal_places=2,
                                        validators=[MinValueValidator(0)])
+    
+    # COD Hybrid Payment fields
+    advance_payment_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Amount paid online for COD orders"
+    )
+    cod_balance_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Amount to be paid on delivery for COD orders"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

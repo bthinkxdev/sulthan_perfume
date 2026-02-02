@@ -194,3 +194,5 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Razorpay Configuration
 RAZORPAY_KEY_ID = 'rzp_live_SBI6Mw6p3eTE48'
 RAZORPAY_KEY_SECRET = 'exrX3lkGGSxl4yEm66h197Xz'
+
+COD_ADVANCE_PAYMENT = 50 

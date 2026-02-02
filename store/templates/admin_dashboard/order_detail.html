@@ -126,6 +126,16 @@
                             <td><code>{{ order.payment_reference }}</code></td>
                         </tr>
                         {% endif %}
+                        {% if order.payment_method == 'cod' and order.advance_payment_amount > 0 %}
+                        <tr style="background: rgba(40, 167, 69, 0.1);">
+                            <th>✅ Advance Paid Online:</th>
+                            <td><strong style="color: #28a745;">₹{{ order.advance_payment_amount }}</strong></td>
+                        </tr>
+                        <tr style="background: rgba(255, 193, 7, 0.1);">
+                            <th>💰 COD Balance:</th>
+                            <td><strong style="color: #f0ad4e;">₹{{ order.cod_balance_amount }}</strong></td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
             </div>

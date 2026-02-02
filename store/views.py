@@ -352,7 +352,7 @@ def create_razorpay_order(request):
 @login_required
 @require_http_methods(["POST"])
 def create_cod_order(request):
-    """Create Cash on Delivery order"""
+    """Create Razorpay order for COD advance payment (₹50)"""
     try:
         data = json.loads(request.body)
         
@@ -367,10 +367,22 @@ def create_cod_order(request):
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
         
-        # Calculate total from cart items
+        # Calculate total and COD amounts
         total_amount = float(cart.get_total())
+        advance_payment = float(settings.COD_ADVANCE_PAYMENT)
+        cod_balance = total_amount - advance_payment
         
-        # Create order in our database
+        # Validate that total is greater than advance payment
+        if total_amount < advance_payment:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Order total must be at least ₹{advance_payment}'
+            }, status=400)
+        
+        # Convert advance payment to paise for Razorpay
+        amount_in_paise = int(advance_payment * 100)
+        
+        # Create order in our database first (with pending status)
         with transaction.atomic():
             order = Order.objects.create(
                 user=request.user,
@@ -382,9 +394,10 @@ def create_cod_order(request):
                 district=data['district'],
                 pincode=data['pincode'],
                 total_amount=total_amount,
+                advance_payment_amount=advance_payment,
+                cod_balance_amount=cod_balance,
                 payment_method='cod',
-                payment_status='pending',  # Will be completed on delivery
-                payment_reference='COD',
+                payment_status='pending',
                 status='new'
             )
             
@@ -400,31 +413,41 @@ def create_cod_order(request):
                     quantity=cart_item.quantity,
                     price_at_purchase=cart_item.price_at_time
                 )
-            
-            # Mark cart as checked out
-            cart.status = 'checked_out'
-            cart.save()
-            
-            # Create a new active cart for the user
-            Cart.objects.get_or_create(
-                user=request.user,
-                status='active'
-            )
         
-        # Send email notification to admin
-        try:
-            send_admin_order_notification(order)
-        except Exception as e:
-            logger.error(f"Failed to send admin notification: {str(e)}")
-            # Continue even if email fails
+        # Create Razorpay order for advance payment
+        razorpay_order = razorpay_client.order.create({
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'receipt': f"{order.order_number}-ADV",
+            'notes': {
+                'order_id': str(order.id),
+                'customer_name': order.customer_name,
+                'email': request.user.email,
+                'payment_type': 'COD Advance Payment',
+                'balance_cod': cod_balance
+            }
+        })
         
-        logger.info(f"COD order created: {order.order_number}")
+        # Update order with Razorpay order ID
+        order.razorpay_order_id = razorpay_order['id']
+        order.save()
+        
+        logger.info(f"COD order created with advance payment: {order.order_number}")
         
         return JsonResponse({
             'success': True,
-            'order_number': order.order_number,
+            'razorpay_order_id': razorpay_order['id'],
+            'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+            'amount': amount_in_paise,
+            'currency': 'INR',
             'order_id': str(order.id),
-            'message': 'Order placed successfully'
+            'order_number': order.order_number,
+            'customer_name': order.customer_name,
+            'customer_email': request.user.email,
+            'customer_phone': order.phone,
+            'advance_payment': advance_payment,
+            'cod_balance': cod_balance,
+            'total_amount': total_amount
         })
         
     except Exception as e:
@@ -501,6 +524,79 @@ def verify_payment(request):
         return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
     except Exception as e:
         logger.error(f"Error verifying payment: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def verify_cod_advance_payment(request):
+    """Verify COD advance payment and finalize order"""
+    try:
+        data = json.loads(request.body)
+        
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_signature = data.get('razorpay_signature')
+        
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return JsonResponse({'success': False, 'error': 'Missing payment parameters'}, status=400)
+        
+        # Find the order
+        order = get_object_or_404(Order, razorpay_order_id=razorpay_order_id, user=request.user)
+        
+        # Verify signature
+        generated_signature = hmac.new(
+            settings.RAZORPAY_KEY_SECRET.encode(),
+            f"{razorpay_order_id}|{razorpay_payment_id}".encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if generated_signature != razorpay_signature:
+            logger.error(f"COD advance payment verification failed for order {order.order_number}")
+            order.payment_status = 'failed'
+            order.status = 'cancelled'
+            order.save()
+            return JsonResponse({'success': False, 'error': 'Payment verification failed'}, status=400)
+        
+        # Payment verified successfully
+        with transaction.atomic():
+            order.razorpay_payment_id = razorpay_payment_id
+            order.razorpay_signature = razorpay_signature
+            order.payment_status = 'pending'  # Pending for COD balance payment
+            order.payment_reference = razorpay_payment_id
+            order.save()
+            
+            # Mark cart as checked out
+            if order.cart:
+                order.cart.status = 'checked_out'
+                order.cart.save()
+            
+            # Create a new active cart for the user
+            Cart.objects.get_or_create(
+                user=request.user,
+                status='active'
+            )
+        
+        # Send email notification to admin
+        try:
+            send_admin_order_notification(order)
+        except Exception as e:
+            logger.error(f"Failed to send admin notification: {str(e)}")
+            # Continue even if email fails
+        
+        logger.info(f"COD advance payment verified for order {order.order_number}")
+        
+        return JsonResponse({
+            'success': True,
+            'order_number': order.order_number,
+            'order_id': str(order.id),
+            'message': 'Advance payment verified successfully'
+        })
+        
+    except Order.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error verifying COD advance payment: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 

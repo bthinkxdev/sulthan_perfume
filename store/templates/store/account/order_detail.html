@@ -354,6 +354,18 @@
                     <p class="summary-value">₹{{ order.total_amount }}</p>
                 </div>
                 
+                {% if order.payment_method == 'cod' and order.advance_payment_amount > 0 %}
+                <div class="summary-field" style="background: rgba(196, 111, 68, 0.05); padding: 12px; border-radius: 8px; margin-top: 12px;">
+                    <p class="summary-label">✅ Advance Paid</p>
+                    <p class="summary-value" style="color: #28a745;">₹{{ order.advance_payment_amount }}</p>
+                </div>
+                
+                <div class="summary-field" style="background: rgba(255, 193, 7, 0.1); padding: 12px; border-radius: 8px; margin-top: 8px;">
+                    <p class="summary-label">💰 Balance (Pay on Delivery)</p>
+                    <p class="summary-value" style="color: var(--primary);">₹{{ order.cod_balance_amount }}</p>
+                </div>
+                {% endif %}
+                
                 <div class="shipping-section">
                     <h3>Shipping Address</h3>
                     <div class="shipping-address">
