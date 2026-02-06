@@ -414,7 +414,7 @@
     .product-name {
         font-family: var(--font-heading);
         font-size: 22px;
-        font-weight: 700;
+        font-weight: 500;
         color: var(--text-main);
         margin: 0;
     }
@@ -438,7 +438,7 @@
 
     .product-price {
         font-size: 22px;
-        font-weight: 700;
+        font-weight: 500;
         color: var(--primary);
         background: rgba(196, 111, 68, 0.08);
         padding: 8px 12px;
@@ -465,16 +465,21 @@
         box-shadow: 0 14px 32px rgba(196, 111, 68, 0.32);
     }
 
-    /* Combo Cards */
+    /* Combo Cards – align with product card styling */
     .combo-card {
-        background: linear-gradient(180deg, #ffffff 0%, #fff5eb 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #fff8f1 100%);
         border-radius: 22px;
         border: 1px solid rgba(196, 111, 68, 0.18);
-        padding: 24px;
+        padding: 10px 10px 16px; /* extra bottom padding to match product cards */
         transition: var(--transition-smooth);
         position: relative;
         overflow: hidden;
-        box-shadow: 0 18px 42px rgba(26, 18, 12, 0.14);
+        box-shadow: 0 16px 38px rgba(26, 18, 12, 0.12);
+        cursor: pointer;
+        isolation: isolate;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
 
     {% comment %} .combo-card::before {
@@ -488,28 +493,21 @@
         opacity: 0.9;
     } {% endcomment %}
 
-    .combo-images {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-
     .combo-image-wrapper {
         position: relative;
-        border-radius: 14px;
+        border-radius: 16px;
         overflow: hidden;
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.75);
+        background: rgba(255, 255, 255, 0.9);
     }
 
     .combo-image {
         width: 100%;
-        height: 150px;
+        height: 180px;
         object-fit: cover;
         display: block;
         transition: var(--transition-smooth);
-        border-radius: 14px;
+        border-radius: 16px;
         box-shadow: 0 10px 24px rgba(26, 18, 12, 0.12);
     }
 
@@ -534,29 +532,34 @@
 
     .combo-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 22px 52px rgba(26, 18, 12, 0.18);
+        box-shadow: 0 20px 48px rgba(26, 18, 12, 0.16);
         border-color: rgba(196, 111, 68, 0.28);
     }
 
+    /* Discount flag pinned on top-left of image */
     .combo-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
         display: inline-block;
         background: linear-gradient(135deg, #c46f44 0%, #f4c29a 100%);
         color: var(--white);
-        padding: 7px 16px;
+        padding: 5px 10px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
-        margin-bottom: 14px;
         text-transform: uppercase;
         letter-spacing: 0.4px;
+        box-shadow: 0 4px 12px rgba(196, 111, 68, 0.35);
     }
 
     .combo-title {
         font-family: var(--font-heading);
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         color: var(--text-main);
-        margin-bottom: 12px;
+        margin: 6px 0 4px;
     }
 
     .combo-products {
@@ -845,7 +848,7 @@
         }
 
         .combo-card {
-            padding: 20px;
+            padding: 10px 10px 16px;
             border-radius: 20px;
             box-shadow: 0 16px 38px rgba(26, 18, 12, 0.14);
             max-width: 340px;
@@ -853,12 +856,8 @@
             margin-right: auto;
         }
 
-        .combo-images {
-            gap: 8px;
-        }
-
         .combo-image {
-            height: 140px;
+            height: 160px;
         }
 
         .combo-title {
@@ -1009,45 +1008,26 @@
         }
 
         .combo-card {
-            padding: 12px;
+            padding: 8px 8px 14px;
             border-radius: 14px;
             max-width: 100%;
         }
 
         .combo-image {
-            height: 110px;
-        }
-
-        .combo-images {
-            gap: 8px;
-            margin-bottom: 10px;
+            height: 140px;
         }
 
         .combo-title {
-            font-size: 18px;
-        }
-
-        .combo-products {
-            gap: 6px;
-            margin-bottom: 10px;
+            font-size: 16px;
         }
 
         .combo-price {
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .combo-pricing {
             gap: 8px;
             margin-bottom: 10px;
-        }
-
-        /* Compact combo CTA on small screens */
-        .combo-card .btn-primary {
-            width: 100%;
-            font-size: 12px;
-            padding: 7px 8px;
-            line-height: 1.2;
-            border-radius: 10px;
         }
     }
 
@@ -1175,23 +1155,20 @@
         <div class="products-grid">
             {% for combo in combos %}
             {% with first_item=combo.combo_products.first %}
-            <div class="combo-card fade-in" onclick="window.location.href='{% url 'store:combo_detail' combo.slug %}'" style="cursor: pointer;">
-                <span class="combo-badge">Save {{ combo.discount_percentage }}%</span>
-                <h3 class="combo-title">{{ combo.title }}</h3>
-                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">Includes {{ combo.combo_products.count }} product{{ combo.combo_products.count|pluralize }}</p>
-                
-                <div class="combo-images">
-                    <div class="combo-image-wrapper">
-                        {% if combo.image %}
-                            <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image">
-                        {% elif first_item and first_item.product.image %}
-                            <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}" class="combo-image">
-                        {% else %}
-                            <div class="combo-image" style="background: var(--light-gray); display: grid; place-items: center; color: var(--text-muted); height: 220px; border-radius: 18px; border: 1px dashed var(--border);">No image</div>
-                        {% endif %}
-                        {% comment %} <div class="combo-image-label">Combo cover</div> {% endcomment %}
-                    </div>
+            <div class="combo-card fade-in" onclick="window.location.href='{% url 'store:combo_detail' combo.slug %}'">
+                <div class="combo-image-wrapper">
+                    <span class="combo-badge">Save {{ combo.discount_percentage }}%</span>
+                    {% if combo.image %}
+                        <img src="{{ combo.image.url }}" alt="{{ combo.title }}" class="combo-image">
+                    {% elif first_item and first_item.product.image %}
+                        <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}" class="combo-image">
+                    {% else %}
+                        <div class="combo-image" style="background: var(--light-gray); display: grid; place-items: center; color: var(--text-muted); height: 220px; border-radius: 18px; border: 1px dashed var(--border);">No image</div>
+                    {% endif %}
                 </div>
+
+                <h3 class="combo-title">{{ combo.title }}</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: 0;">Includes {{ combo.combo_products.count }} product{{ combo.combo_products.count|pluralize }}</p>
 {% comment %} 
                 <div class="combo-products">
                     {% for item in combo.combo_products.all %}
@@ -1207,7 +1184,7 @@
                     <span class="combo-discount">-{{ combo.discount_percentage }}%</span>
                 </div> {% endcomment %}
 
-                <button class="btn-primary" style="width: 100%;" onclick="event.stopPropagation(); addToCart('{{ combo.id }}', 'combo', '{{ combo.title }}', '{{ combo.discounted_price }}', '{% if combo.image %}{{ combo.image.url }}{% elif first_item and first_item.product.image %}{{ first_item.product.image.url }}{% endif %}')">Add Combo to Cart</button>
+                <button class="add-to-cart-btn" style="width: 100%;" onclick="event.stopPropagation(); addToCart('{{ combo.id }}', 'combo', '{{ combo.title }}', '{{ combo.discounted_price }}', '{% if combo.image %}{{ combo.image.url }}{% elif first_item and first_item.product.image %}{{ first_item.product.image.url }}{% endif %}')">Add to Cart</button>
             </div>
             {% endwith %}
             {% empty %}
