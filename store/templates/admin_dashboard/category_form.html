@@ -4,9 +4,9 @@
 {% block page_title %}{{ action }} Category{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-12 col-lg-8">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">{{ action }} Category</h5>
@@ -27,25 +27,6 @@
                             <textarea class="form-control" id="description" name="description" 
                                       rows="3">{{ category.description|default:'' }}</textarea>
                             <small class="form-text text-muted">Optional description for the category</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="image" class="form-label">Category Image</label>
-                            {% if category.image %}
-                            <div class="mb-2">
-                                <img src="{{ category.image.url }}" alt="{{ category.name }}" 
-                                     style="max-width: 200px; border-radius: 5px;">
-                            </div>
-                            {% endif %}
-                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                            <small class="form-text text-muted">Upload a category image (optional)</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="display_order" class="form-label">Display Order</label>
-                            <input type="number" class="form-control" id="display_order" name="display_order" 
-                                   value="{{ category.display_order|default:0 }}" min="0">
-                            <small class="form-text text-muted">Lower numbers appear first (0 = highest priority)</small>
                         </div>
 
                         <div class="mb-3 form-check">

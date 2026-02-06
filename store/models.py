@@ -7,18 +7,18 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.hashers import make_password
 from django.core.validators import EmailValidator
+from django.db.models import Q
 import uuid
 import secrets
 from datetime import timedelta
 
 
 class Category(models.Model):
-    """Product category model"""
+    """Product category model (no image)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     display_order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first")
     
@@ -264,8 +264,13 @@ class Order(models.Model):
     razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
     razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
 
+    # Guest identification (no login required)
+    guest_id = models.CharField(max_length=64, blank=True, null=True, db_index=True,
+                                help_text="Session/cookie UUID for guest orders")
+
     customer_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
+    email = models.EmailField(blank=True, null=True, help_text="Optional, for order confirmation")
 
     address_line = models.TextField()
     city = models.CharField(max_length=50)
@@ -296,6 +301,7 @@ class Order(models.Model):
         indexes = [
             models.Index(fields=['order_number']),
             models.Index(fields=['status']),
+            models.Index(fields=['phone']),
         ]
 
     def save(self, *args, **kwargs):
@@ -504,7 +510,7 @@ class Address(models.Model):
 
 
 class Cart(models.Model):
-    """Shopping cart model - one active cart per user"""
+    """Shopping cart model - one active cart per guest (guest_id) or user"""
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('checked_out', 'Checked Out'),
@@ -512,6 +518,8 @@ class Cart(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    guest_id = models.CharField(max_length=64, null=True, blank=True, db_index=True,
+                                 help_text="Session/cookie UUID for guest cart")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='carts', on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -520,13 +528,21 @@ class Cart(models.Model):
     class Meta:
         ordering = ['-updated_at']
         indexes = [
+            models.Index(fields=['guest_id', 'status']),
             models.Index(fields=['user', 'status']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['guest_id'],
+                condition=Q(status='active'),
+                name='unique_active_guest_cart'
+            ),
         ]
     
     def __str__(self):
         if self.user:
-            return f"Cart for {self.user.email} - {self.status}"
-        return f"Guest Cart - {self.status}"
+            return f"Cart for user - {self.status}"
+        return f"Guest Cart ({self.guest_id[:8] if self.guest_id else '?'}...) - {self.status}"
     
     def get_total(self):
         """Calculate total cart amount"""
@@ -536,8 +552,16 @@ class Cart(models.Model):
         """Get total number of items in cart"""
         return sum(item.quantity for item in self.items.all())
     
-    def get_or_create_active_cart(user=None):
-        """Get or create an active cart for a user"""
+    @staticmethod
+    def get_or_create_active_cart(guest_id=None, user=None):
+        """Get or create an active cart for a guest (guest_id) or user."""
+        if guest_id:
+            cart, created = Cart.objects.get_or_create(
+                guest_id=guest_id,
+                status='active',
+                defaults={}
+            )
+            return cart, created
         if user and user.is_authenticated:
             cart, created = Cart.objects.get_or_create(
                 user=user,

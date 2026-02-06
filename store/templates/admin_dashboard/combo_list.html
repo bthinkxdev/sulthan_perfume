@@ -4,15 +4,15 @@
 {% block page_title %}Combo Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <!-- Search and Filter Bar -->
     <div class="search-filter-bar">
         <form method="get" class="row g-3">
-            <div class="col-md-5">
+            <div class="col-12 col-md-5">
                 <input type="text" name="search" class="form-control" 
                        placeholder="Search combos..." value="{{ search_query }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-md-3">
                 <select name="status" class="form-control">
                     <option value="">All Status</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
@@ -20,12 +20,12 @@
                     <option value="featured" {% if status_filter == 'featured' %}selected{% endif %}>Featured</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search"></i> Search
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <a href="{% url 'admin_combo_create' %}" class="btn btn-success w-100">
                     <i class="bi bi-plus-lg"></i> Add Combo
                 </a>
@@ -34,9 +34,9 @@
     </div>
 
     <!-- Combos Grid -->
-    <div class="row">
+    <div class="row g-3">
         {% for combo in page_obj %}
-        <div class="col-md-4 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <div class="card h-100">
                 {% if combo.image %}
                 <img src="{{ combo.image.url }}" class="card-img-top" alt="{{ combo.title }}"

@@ -4,9 +4,9 @@
 {% block page_title %}Combo Details{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <!-- Action Buttons -->
-    <div class="mb-3">
+    <div class="admin-actions">
         <a href="{% url 'admin_combo_list' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Back to Combos
         </a>
@@ -18,16 +18,16 @@
         </a>
     </div>
 
-    <div class="row">
+    <div class="row g-3">
         <!-- Combo Information -->
-        <div class="col-md-8">
+        <div class="col-12 col-lg-8">
             <div class="card mb-4">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Combo Information</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
                             {% if combo.image %}
                             <img src="{{ combo.image.url }}" alt="{{ combo.title }}" 
                                  class="img-fluid rounded">
@@ -38,7 +38,7 @@
                             </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-12 col-md-8">
                             <h3>{{ combo.title }}</h3>
                             
                             <table class="table table-sm mt-3">
@@ -89,7 +89,7 @@
         </div>
 
         <!-- Quick Stats -->
-        <div class="col-md-4">
+        <div class="col-12 col-lg-4">
             <div class="card mb-4">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Quick Stats</h5>

@@ -2,21 +2,17 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
-from django.contrib.auth import login, logout, get_user_model
-from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, OTP, Address, Cart, CartItem, Category
-from .auth_utils import check_otp_rate_limit, set_otp_rate_limit, get_client_ip
+from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, Cart, CartItem, Category
+from .utils import parse_uuid
 import json
-from datetime import timedelta
 import logging
 import razorpay
 import hmac
@@ -26,39 +22,6 @@ logger = logging.getLogger(__name__)
 
 # Initialize Razorpay client
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
-def _user_has_field(user_or_model, field_name):
-    model = user_or_model if isinstance(user_or_model, type) else user_or_model.__class__
-    return any(field.name == field_name for field in model._meta.get_fields())
-
-
-def _get_user_display_name(user):
-    if _user_has_field(user, "name") and user.name:
-        return user.name
-    if _user_has_field(user, "first_name") and user.first_name:
-        return user.first_name
-    if hasattr(user, "get_full_name") and user.get_full_name():
-        return user.get_full_name()
-    if getattr(user, "email", None):
-        return user.email.split("@")[0]
-    return "User"
-
-
-def _set_user_name(user, name):
-    if not name:
-        return
-    if _user_has_field(user, "name"):
-        user.name = name
-    elif _user_has_field(user, "first_name"):
-        user.first_name = name
-
-
-def _set_user_phone(user, phone):
-    if not phone:
-        return
-    if _user_has_field(user, "phone"):
-        user.phone = phone
-
 
 def get_site_config():
     """Helper to get site configuration"""
@@ -137,9 +100,6 @@ def home(request):
     featured_product = products.filter(is_featured=True).first() or products.first()
     site_config = get_site_config()
     
-    # Check if user was redirected here for login
-    show_login_modal = request.GET.get('next') is not None and not request.user.is_authenticated
-    
     context = {
         'featured_product': featured_product,
         'products': products,
@@ -147,8 +107,6 @@ def home(request):
         'categories': categories,
         'current_category': category_filter,
         'site_config': site_config,
-        'show_login_modal': show_login_modal,
-        'next_url': request.GET.get('next', '/'),
     }
     return render(request, 'store/home.html', context)
 
@@ -212,11 +170,10 @@ def combo_detail(request, slug):
     return render(request, 'store/combo_detail.html', context)
 
 
-@login_required
 def cart(request):
-    """Cart page - requires authentication"""
+    """Cart page - guest or user"""
     site_config = get_site_config()
-    cart_obj = get_or_create_cart(request.user)
+    cart_obj = get_or_create_cart(request)
     context = {
         'site_config': site_config,
         'cart': cart_obj,
@@ -224,13 +181,12 @@ def cart(request):
     return render(request, 'store/cart.html', context)
 
 
-@login_required
 def checkout(request):
-    """Checkout page - requires authentication"""
+    """Checkout page - guest checkout, no login required"""
     site_config = get_site_config()
     
     # Get cart with items prefetched
-    cart_obj = get_or_create_cart(request.user)
+    cart_obj = get_or_create_cart(request)
     
     # Debug: Check if cart exists and has items
     if not cart_obj:
@@ -250,26 +206,21 @@ def checkout(request):
         messages.warning(request, 'Your cart is empty. Please add items before checking out.')
         return redirect('store:cart')
     
-    # Get user addresses
-    addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created_at')
-    
     context = {
         'site_config': site_config,
         'cart': cart_obj,
-        'addresses': addresses,
     }
     return render(request, 'store/checkout.html', context)
 
 
-@login_required
 @require_http_methods(["POST"])
 def create_razorpay_order(request):
-    """Create Razorpay order before payment"""
+    """Create Razorpay order before payment (guest checkout)"""
     try:
         data = json.loads(request.body)
         
-        # Get user's active cart
-        cart = get_or_create_cart(request.user)
+        # Get guest's active cart
+        cart = get_or_create_cart(request)
         if not cart or cart.items.count() == 0:
             return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
         
@@ -279,17 +230,29 @@ def create_razorpay_order(request):
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
         
+        # Optional email validation
+        email = (data.get('email') or '').strip() or None
+        if email:
+            try:
+                validate_email(email)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid email format'}, status=400)
+        
         # Calculate total from cart items (Razorpay requires amount in paise/cents)
         total_amount = float(cart.get_total())
         amount_in_paise = int(total_amount * 100)  # Convert to paise
         
+        guest_id = getattr(request, 'guest_id', None)
+        
         # Create order in our database first (with pending status)
         with transaction.atomic():
             order = Order.objects.create(
-                user=request.user,
+                user=None,
+                guest_id=guest_id,
                 cart=cart,
                 customer_name=data['customer_name'],
                 phone=data['phone'],
+                email=email,
                 address_line=data['address_line'],
                 city=data['city'],
                 district=data['district'],
@@ -321,7 +284,7 @@ def create_razorpay_order(request):
             'notes': {
                 'order_id': str(order.id),
                 'customer_name': order.customer_name,
-                'email': request.user.email
+                'email': email or ''
             }
         })
         
@@ -340,7 +303,7 @@ def create_razorpay_order(request):
             'order_id': str(order.id),
             'order_number': order.order_number,
             'customer_name': order.customer_name,
-            'customer_email': request.user.email,
+            'customer_email': email or order.phone,
             'customer_phone': order.phone
         })
         
@@ -349,15 +312,14 @@ def create_razorpay_order(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def create_cod_order(request):
-    """Create Razorpay order for COD advance payment (₹50)"""
+    """Create Razorpay order for COD advance payment (₹50) - guest checkout"""
     try:
         data = json.loads(request.body)
         
-        # Get user's active cart
-        cart = get_or_create_cart(request.user)
+        # Get guest's active cart
+        cart = get_or_create_cart(request)
         if not cart or cart.items.count() == 0:
             return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
         
@@ -366,6 +328,13 @@ def create_cod_order(request):
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
+        
+        email = (data.get('email') or '').strip() or None
+        if email:
+            try:
+                validate_email(email)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid email format'}, status=400)
         
         # Calculate total and COD amounts
         total_amount = float(cart.get_total())
@@ -382,13 +351,17 @@ def create_cod_order(request):
         # Convert advance payment to paise for Razorpay
         amount_in_paise = int(advance_payment * 100)
         
+        guest_id = getattr(request, 'guest_id', None)
+        
         # Create order in our database first (with pending status)
         with transaction.atomic():
             order = Order.objects.create(
-                user=request.user,
+                user=None,
+                guest_id=guest_id,
                 cart=cart,
                 customer_name=data['customer_name'],
                 phone=data['phone'],
+                email=email,
                 address_line=data['address_line'],
                 city=data['city'],
                 district=data['district'],
@@ -422,7 +395,7 @@ def create_cod_order(request):
             'notes': {
                 'order_id': str(order.id),
                 'customer_name': order.customer_name,
-                'email': request.user.email,
+                'email': email or '',
                 'payment_type': 'COD Advance Payment',
                 'balance_cod': cod_balance
             }
@@ -443,7 +416,7 @@ def create_cod_order(request):
             'order_id': str(order.id),
             'order_number': order.order_number,
             'customer_name': order.customer_name,
-            'customer_email': request.user.email,
+            'customer_email': email or order.phone,
             'customer_phone': order.phone,
             'advance_payment': advance_payment,
             'cod_balance': cod_balance,
@@ -455,10 +428,9 @@ def create_cod_order(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def verify_payment(request):
-    """Verify Razorpay payment signature and update order status"""
+    """Verify Razorpay payment signature and update order status (guest-safe by guest_id)"""
     try:
         data = json.loads(request.body)
         
@@ -469,8 +441,14 @@ def verify_payment(request):
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return JsonResponse({'success': False, 'error': 'Missing payment parameters'}, status=400)
         
-        # Find the order
-        order = get_object_or_404(Order, razorpay_order_id=razorpay_order_id, user=request.user)
+        guest_id = getattr(request, 'guest_id', None)
+        order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        if not order:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.guest_id and order.guest_id != guest_id:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.user_id and request.user.is_authenticated and order.user_id != request.user.pk:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
         
         # Verify signature
         generated_signature = hmac.new(
@@ -498,11 +476,7 @@ def verify_payment(request):
                 order.cart.status = 'checked_out'
                 order.cart.save()
             
-            # Create a new active cart for the user
-            Cart.objects.get_or_create(
-                user=request.user,
-                status='active'
-            )
+            # New active cart is created on next request via get_or_create_cart(guest_id)
         
         # Send email notification to admin
         try:
@@ -520,17 +494,14 @@ def verify_payment(request):
             'message': 'Payment verified successfully'
         })
         
-    except Order.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
     except Exception as e:
         logger.error(f"Error verifying payment: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def verify_cod_advance_payment(request):
-    """Verify COD advance payment and finalize order"""
+    """Verify COD advance payment and finalize order (guest-safe by guest_id)"""
     try:
         data = json.loads(request.body)
         
@@ -541,8 +512,14 @@ def verify_cod_advance_payment(request):
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return JsonResponse({'success': False, 'error': 'Missing payment parameters'}, status=400)
         
-        # Find the order
-        order = get_object_or_404(Order, razorpay_order_id=razorpay_order_id, user=request.user)
+        guest_id = getattr(request, 'guest_id', None)
+        order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        if not order:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.guest_id and order.guest_id != guest_id:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.user_id and request.user.is_authenticated and order.user_id != request.user.pk:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
         
         # Verify signature
         generated_signature = hmac.new(
@@ -570,12 +547,6 @@ def verify_cod_advance_payment(request):
             if order.cart:
                 order.cart.status = 'checked_out'
                 order.cart.save()
-            
-            # Create a new active cart for the user
-            Cart.objects.get_or_create(
-                user=request.user,
-                status='active'
-            )
         
         # Send email notification to admin
         try:
@@ -593,17 +564,14 @@ def verify_cod_advance_payment(request):
             'message': 'Advance payment verified successfully'
         })
         
-    except Order.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
     except Exception as e:
         logger.error(f"Error verifying COD advance payment: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def payment_failed(request):
-    """Handle payment failure - mark order as failed"""
+    """Handle payment failure - mark order as failed (guest-safe by guest_id)"""
     try:
         data = json.loads(request.body)
         razorpay_order_id = data.get('razorpay_order_id')
@@ -611,7 +579,14 @@ def payment_failed(request):
         if not razorpay_order_id:
             return JsonResponse({'success': False, 'error': 'Order ID is required'}, status=400)
         
-        order = get_object_or_404(Order, razorpay_order_id=razorpay_order_id, user=request.user)
+        guest_id = getattr(request, 'guest_id', None)
+        order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        if not order:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.guest_id and order.guest_id != guest_id:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
+        if order.user_id and request.user.is_authenticated and order.user_id != request.user.pk:
+            return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
         
         # Mark order as failed
         order.payment_status = 'failed'
@@ -626,8 +601,6 @@ def payment_failed(request):
             'order_number': order.order_number
         })
         
-    except Order.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Order not found'}, status=404)
     except Exception as e:
         logger.error(f"Error handling payment failure: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -721,173 +694,19 @@ def order_confirmation(request, order_number):
     return render(request, 'store/order_confirmation.html', context)
 
 
-# ==================== AUTHENTICATION VIEWS ====================
-
-@require_http_methods(["POST"])
-def send_otp(request):
-    """Send OTP to email"""
-    try:
-        data = json.loads(request.body)
-        email = data.get('email', '').strip().lower()
-        
-        # Validate email
-        if not email:
-            return JsonResponse({'success': False, 'error': 'Email is required'}, status=400)
-        
-        try:
-            validate_email(email)
-        except ValidationError:
-            return JsonResponse({'success': False, 'error': 'Invalid email format'}, status=400)
-        
-        # Check rate limit
-        ip_address = get_client_ip(request)
-        is_allowed, remaining = check_otp_rate_limit(email, ip_address, limit_minutes=1)
-        if not is_allowed:
-            return JsonResponse({
-                'success': False,
-                'error': f'Please wait {remaining} seconds before requesting another OTP'
-            }, status=429)
-        
-        # Create OTP
-        otp, otp_code = OTP.create_otp(email, ip_address)
-        
-        # Set rate limit
-        set_otp_rate_limit(email, ip_address, limit_minutes=1)
-        
-        # Send email
-        site_config = get_site_config()
-        subject = f'Your Login OTP - {site_config.site_name}'
-        
-        # HTML email template
-        html_message = render_to_string('store/emails/otp_email.html', {
-            'otp': otp_code,
-            'site_config': site_config,
-            'expiry_minutes': 10,
-        })
-        
-        # Plain text email template
-        plain_message = render_to_string('store/emails/otp_email.txt', {
-            'otp': otp_code,
-            'site_config': site_config,
-            'expiry_minutes': 10,
-        })
-        
-        try:
-            send_mail(
-                subject=subject,
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-        except Exception as e:
-            # Log the actual error for debugging
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f'Failed to send OTP email to {email}: {str(e)}', exc_info=True)
-            
-            return JsonResponse({
-                'success': False,
-                'error': f'Failed to send email: {str(e)}. Please check your email configuration.'
-            }, status=500)
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'OTP sent to your email'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@require_http_methods(["POST"])
-def verify_otp(request):
-    """Verify OTP and login user"""
-    try:
-        data = json.loads(request.body)
-        email = data.get('email', '').strip().lower()
-        otp_code = data.get('otp', '').strip()
-        next_url = data.get('next', '/')
-        
-        if not email or not otp_code:
-            return JsonResponse({'success': False, 'error': 'Email and OTP are required'}, status=400)
-        
-        # Find valid OTP
-        otp = OTP.objects.filter(
-            email=email,
-            is_used=False
-        ).order_by('-created_at').first()
-        
-        if not otp:
-            return JsonResponse({'success': False, 'error': 'Invalid or expired OTP'}, status=400)
-        
-        # Verify OTP
-        if not otp.verify(otp_code):
-            return JsonResponse({'success': False, 'error': 'Invalid or expired OTP'}, status=400)
-        
-        # Get or create user (supports built-in or custom user models)
-        UserModel = get_user_model()
-        user = UserModel.objects.filter(email__iexact=email).first()
-        if not user:
-            create_kwargs = {}
-            username_field = getattr(UserModel, "USERNAME_FIELD", None)
-            if username_field:
-                create_kwargs[username_field] = email
-            # Only set email if the model has an email field
-            if _user_has_field(UserModel, "email"):
-                create_kwargs["email"] = email
-            user = UserModel(**create_kwargs)
-            if hasattr(user, "set_unusable_password"):
-                user.set_unusable_password()
-            _set_user_name(user, email.split("@")[0])
-            user.save()
-        
-        # Login user
-        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        
-        # Note: Cart merging will be handled by frontend via merge_cart API
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Login successful',
-            'next': next_url,
-            'user': {
-                'email': user.email,
-                'name': _get_user_display_name(user)
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@login_required
-def logout_view(request):
-    """Logout user"""
-    logout(request)
-    
-    # Handle AJAX requests
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'message': 'Logged out successfully'})
-    
-    # Handle regular requests - redirect to home
-    messages.success(request, 'You have been logged out successfully.')
-    return redirect('store:home')
-
-
 # ==================== CART UTILITIES ====================
 
-def get_or_create_cart(user):
-    """Get or create active cart for user"""
-    if not user or not user.is_authenticated:
-        return None
-    cart, _ = Cart.objects.get_or_create(
-        user=user,
-        status='active',
-        defaults={}
-    )
-    return cart
+def get_or_create_cart(request):
+    """Get or create active cart for guest (guest_id from cookie) or user."""
+    guest_id = getattr(request, 'guest_id', None)
+    if guest_id:
+        cart, _ = Cart.get_or_create_active_cart(guest_id=guest_id)
+        return cart
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated:
+        cart, _ = Cart.get_or_create_active_cart(user=user)
+        return cart
+    return None
 
 
 def merge_session_cart_to_db(request, user):
@@ -913,25 +732,17 @@ def get_session_cart_from_request(request):
 
 @require_http_methods(["GET", "POST"])
 def cart_api(request):
-    """Get or add items to cart"""
-    if not request.user.is_authenticated:
-        return JsonResponse({
-            'success': False,
-            'error': 'Authentication required',
-            'requires_login': True
-        }, status=401)
-    
+    """Get or add items to cart (guest or user)"""
     if request.method == 'GET':
         return get_cart(request)
     elif request.method == 'POST':
         return add_to_cart(request)
 
 
-@login_required
 def get_cart(request):
-    """Get user's cart"""
+    """Get guest's or user's cart"""
     try:
-        cart = get_or_create_cart(request.user)
+        cart = get_or_create_cart(request)
         if not cart:
             return JsonResponse({'success': True, 'cart': [], 'total': 0, 'item_count': 0})
         
@@ -972,10 +783,9 @@ def get_cart(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def add_to_cart(request):
-    """Add item to cart"""
+    """Add item to cart (guest or user)"""
     try:
         data = json.loads(request.body)
         item_type = data.get('type')  # 'product' or 'combo'
@@ -985,20 +795,25 @@ def add_to_cart(request):
         
         if not item_type or not item_id:
             return JsonResponse({'success': False, 'error': 'Type and ID are required'}, status=400)
+        parsed_id = parse_uuid(item_id)
+        if not parsed_id:
+            return JsonResponse({'success': False, 'error': 'Invalid item ID'}, status=400)
+        if variant_id is not None and parse_uuid(variant_id) is None:
+            return JsonResponse({'success': False, 'error': 'Invalid variant ID'}, status=400)
         
-        cart = get_or_create_cart(request.user)
+        cart = get_or_create_cart(request)
         if not cart:
-            return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+            return JsonResponse({'success': False, 'error': 'Unable to get cart. Please refresh and try again.'}, status=400)
         
         with transaction.atomic():
             if item_type == 'product':
-                product = get_object_or_404(Product, id=item_id, is_active=True)
+                product = get_object_or_404(Product, id=parsed_id, is_active=True)
                 if not variant_id:
                     variant = product.default_variant
                     if not variant:
                         return JsonResponse({'success': False, 'error': 'Product variant not found'}, status=404)
                 else:
-                    variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
+                    variant = get_object_or_404(ProductVariant, id=parse_uuid(variant_id), product=product, is_active=True)
                 
                 price = variant.price
                 
@@ -1020,7 +835,7 @@ def add_to_cart(request):
                     cart_item.save()
             
             elif item_type == 'combo':
-                combo = get_object_or_404(Combo, id=item_id, is_active=True)
+                combo = get_object_or_404(Combo, id=parsed_id, is_active=True)
                 price = combo.discounted_price()
                 
                 # Check if item already exists
@@ -1050,19 +865,23 @@ def add_to_cart(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def update_cart_item(request, item_id):
     """Update cart item quantity"""
     try:
+        parsed_id = parse_uuid(item_id)
+        if not parsed_id:
+            return JsonResponse({'success': False, 'error': 'Invalid item ID'}, status=400)
         data = json.loads(request.body)
         quantity = int(data.get('quantity', 1))
         
         if quantity < 1:
             return JsonResponse({'success': False, 'error': 'Quantity must be at least 1'}, status=400)
         
-        cart = get_or_create_cart(request.user)
-        cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
+        cart = get_or_create_cart(request)
+        if not cart:
+            return JsonResponse({'success': False, 'error': 'Cart not found'}, status=400)
+        cart_item = get_object_or_404(CartItem, id=parsed_id, cart=cart)
         
         cart_item.quantity = quantity
         cart_item.save()
@@ -1079,13 +898,17 @@ def update_cart_item(request, item_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def remove_from_cart(request, item_id):
     """Remove item from cart"""
     try:
-        cart = get_or_create_cart(request.user)
-        cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
+        parsed_id = parse_uuid(item_id)
+        if not parsed_id:
+            return JsonResponse({'success': False, 'error': 'Invalid item ID'}, status=400)
+        cart = get_or_create_cart(request)
+        if not cart:
+            return JsonResponse({'success': False, 'error': 'Cart not found'}, status=400)
+        cart_item = get_object_or_404(CartItem, id=parsed_id, cart=cart)
         cart_item.delete()
         
         return JsonResponse({
@@ -1099,16 +922,17 @@ def remove_from_cart(request, item_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-@login_required
 @require_http_methods(["POST"])
 def merge_cart(request):
-    """Merge session cart to database cart"""
+    """Merge session cart to database cart (guest cart)"""
     try:
         session_cart = get_session_cart_from_request(request)
         if not session_cart:
             return JsonResponse({'success': True, 'message': 'No items to merge'})
         
-        cart = get_or_create_cart(request.user)
+        cart = get_or_create_cart(request)
+        if not cart:
+            return JsonResponse({'success': False, 'error': 'Unable to get cart'}, status=400)
         
         with transaction.atomic():
             for item in session_cart:
@@ -1116,12 +940,16 @@ def merge_cart(request):
                 item_id = item.get('id')
                 quantity = int(item.get('quantity', 1))
                 variant_id = item.get('variant_id')
+                parsed_item_id = parse_uuid(item_id)
+                if not parsed_item_id:
+                    continue
                 
                 if item_type == 'product':
                     try:
-                        product = Product.objects.get(id=item_id, is_active=True)
+                        product = Product.objects.get(id=parsed_item_id, is_active=True)
                         if variant_id:
-                            variant = ProductVariant.objects.get(id=variant_id, product=product, is_active=True)
+                            parsed_variant_id = parse_uuid(variant_id)
+                            variant = ProductVariant.objects.get(id=parsed_variant_id, product=product, is_active=True) if parsed_variant_id else product.default_variant
                         else:
                             variant = product.default_variant
                         
@@ -1146,7 +974,7 @@ def merge_cart(request):
                 
                 elif item_type == 'combo':
                     try:
-                        combo = Combo.objects.get(id=item_id, is_active=True)
+                        combo = Combo.objects.get(id=parsed_item_id, is_active=True)
                         price = combo.discounted_price()
                         cart_item, created = CartItem.objects.get_or_create(
                             cart=cart,
@@ -1173,168 +1001,37 @@ def merge_cart(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== ACCOUNT MANAGEMENT VIEWS ====================
+# ==================== ORDER TRACKING (no login) ====================
 
-@login_required
-def my_orders(request):
-    """User's order history"""
+def track_order(request):
+    """Track order by order number + phone. No login required."""
     site_config = get_site_config()
-    orders = Order.objects.filter(user=request.user).prefetch_related('items').order_by('-created_at')
+    order_number = (request.GET.get('order_number') or request.POST.get('order_number') or '').strip()
+    phone = (request.GET.get('phone') or request.POST.get('phone') or '').strip().replace(' ', '')
+    
+    order = None
+    error = None
+    if order_number and phone:
+        phone_digits = ''.join(c for c in phone if c.isdigit())
+        if len(phone_digits) >= 10:
+            # Match order_number and phone (compare last 10 digits for flexibility)
+            orders = Order.objects.filter(order_number=order_number).prefetch_related('items')
+            for o in orders:
+                o_phone_digits = ''.join(c for c in (o.phone or '') if c.isdigit())
+                if o_phone_digits and o_phone_digits[-10:] == phone_digits[-10:]:
+                    order = o
+                    break
+        if not order:
+            error = 'No order found with this order number and phone number. Please check and try again.'
     
     context = {
         'site_config': site_config,
-        'orders': orders,
-    }
-    return render(request, 'store/account/my_orders.html', context)
-
-
-@login_required
-def order_detail(request, order_number):
-    """Order detail page"""
-    order = get_object_or_404(Order, order_number=order_number, user=request.user)
-    site_config = get_site_config()
-    
-    context = {
         'order': order,
-        'site_config': site_config,
+        'order_number': order_number,
+        'phone': phone,
+        'error': error,
     }
-    return render(request, 'store/account/order_detail.html', context)
-
-
-@login_required
-def my_addresses(request):
-    """User's addresses management"""
-    site_config = get_site_config()
-    addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created_at')
-    
-    context = {
-        'site_config': site_config,
-        'addresses': addresses,
-    }
-    return render(request, 'store/account/my_addresses.html', context)
-
-
-@login_required
-@require_http_methods(["POST"])
-def add_address(request):
-    """Add new address"""
-    try:
-        data = json.loads(request.body)
-        
-        required_fields = ['name', 'phone', 'address_line', 'city', 'district', 'pincode']
-        for field in required_fields:
-            if not data.get(field):
-                return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
-        
-        address = Address.objects.create(
-            user=request.user,
-            name=data['name'],
-            phone=data['phone'],
-            address_line=data['address_line'],
-            city=data['city'],
-            district=data['district'],
-            pincode=data['pincode'],
-            is_default=data.get('is_default', False)
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Address added successfully',
-            'address': {
-                'id': str(address.id),
-                'name': address.name,
-                'phone': address.phone,
-                'address_line': address.address_line,
-                'city': address.city,
-                'district': address.district,
-                'pincode': address.pincode,
-                'is_default': address.is_default
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
-def update_address(request, address_id):
-    """Update address"""
-    try:
-        address = get_object_or_404(Address, id=address_id, user=request.user)
-        data = json.loads(request.body)
-        
-        address.name = data.get('name', address.name)
-        address.phone = data.get('phone', address.phone)
-        address.address_line = data.get('address_line', address.address_line)
-        address.city = data.get('city', address.city)
-        address.district = data.get('district', address.district)
-        address.pincode = data.get('pincode', address.pincode)
-        address.is_default = data.get('is_default', address.is_default)
-        address.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Address updated successfully'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@login_required
-@require_http_methods(["POST"])
-def delete_address(request, address_id):
-    """Delete address"""
-    try:
-        address = get_object_or_404(Address, id=address_id, user=request.user)
-        address.delete()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Address deleted successfully'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@login_required
-def my_profile(request):
-    """User profile page"""
-    site_config = get_site_config()
-    
-    context = {
-        'site_config': site_config,
-        'user': request.user,
-    }
-    return render(request, 'store/account/my_profile.html', context)
-
-
-@login_required
-@require_http_methods(["POST"])
-def update_profile(request):
-    """Update user profile"""
-    try:
-        data = json.loads(request.body)
-        
-        user = request.user
-        _set_user_name(user, data.get('name'))
-        _set_user_phone(user, data.get('phone'))
-        user.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Profile updated successfully',
-            'user': {
-                'email': getattr(user, 'email', None),
-                'name': _get_user_display_name(user),
-                'phone': getattr(user, 'phone', None)
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return render(request, 'store/track_order.html', context)
 
 
 # ==================== LEGAL & INFORMATION PAGES ====================

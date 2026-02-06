@@ -3,62 +3,24 @@
  */
 
 const CartAPI = {
-    // Check if user is authenticated
-    isAuthenticated: false,
+    // Guest-based: no login; cart is identified by cookie (guest_id)
+    isAuthenticated: true,  // Always "ready" for cart operations
     
     // Request tracking to prevent duplicate requests
     _pendingRequests: new Set(),
     _initialized: false,
     
-    // Initialize cart API
+    // Initialize cart API (guest cart via cookie)
     init: async function() {
         if (this._initialized) {
-            return; // Prevent multiple initializations
+            return;
         }
         this._initialized = true;
-        
-        await this.checkAuth();
-        if (this.isAuthenticated) {
-            // Only load cart count on init, not full cart data
-            await this.loadCartCount();
-        }
-    },
-    
-    // Check authentication status
-    checkAuth: async function() {
-        try {
-            // Check if user is logged in by trying to get cart
-            const response = await fetch('/api/cart/', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (response.status === 401 || response.status === 403) {
-                this.isAuthenticated = false;
-                return false;
-            }
-            
-            if (response.ok) {
-                this.isAuthenticated = true;
-                return true;
-            }
-            
-            return false;
-        } catch (error) {
-            console.error('Auth check failed:', error);
-            this.isAuthenticated = false;
-            return false;
-        }
+        await this.loadCartCount();
     },
     
     // Load cart count only (lightweight)
     loadCartCount: async function() {
-        if (!this.isAuthenticated) {
-            return 0;
-        }
         
         // Check cache first (5 second cache to prevent excessive requests)
         const cached = this._getCachedCount();
@@ -102,12 +64,8 @@ const CartAPI = {
         }
     },
     
-    // Load full cart from server (only call when needed, e.g., cart page)
+    // Load full cart from server (guest cart via cookie)
     loadCart: async function() {
-        if (!this.isAuthenticated) {
-            return null;
-        }
-        
         // Prevent duplicate simultaneous requests
         const requestKey = 'loadCart';
         if (this._pendingRequests.has(requestKey)) {
@@ -174,23 +132,8 @@ const CartAPI = {
         sessionStorage.removeItem('cart_count_cache');
     },
     
-    // Add item to cart
+    // Add item to cart (guest cart via cookie)
     addToCart: async function(itemData) {
-        // Check authentication first
-        if (!this.isAuthenticated) {
-            const authenticated = await this.checkAuth();
-            if (!authenticated) {
-                // Show OTP modal
-                const nextUrl = window.location.pathname;
-                if (typeof openOTPModal === 'function') {
-                    openOTPModal(nextUrl);
-                } else {
-                    window.location.href = '/cart/';
-                }
-                return { success: false, requires_login: true };
-            }
-        }
-        
         try {
             const response = await fetch('/api/cart/', {
                 method: 'POST',
@@ -205,16 +148,8 @@ const CartAPI = {
             
             const data = await response.json();
             
-            if (response.status === 401) {
-                // Not authenticated - show login modal
-                if (typeof openOTPModal === 'function') {
-                    openOTPModal(window.location.pathname);
-                }
-                return { success: false, requires_login: true };
-            }
-            
             if (data.success) {
-                this._clearCountCache(); // Clear cache after cart change
+                this._clearCountCache();
                 this.updateCartCount(data.cart_count || 0);
                 return data;
             }
@@ -228,10 +163,6 @@ const CartAPI = {
     
     // Update cart item quantity
     updateCartItem: async function(itemId, quantity) {
-        if (!this.isAuthenticated) {
-            return { success: false, requires_login: true };
-        }
-        
         try {
             const response = await fetch(`/api/cart/item/${itemId}/update/`, {
                 method: 'POST',
@@ -260,10 +191,6 @@ const CartAPI = {
     
     // Remove item from cart
     removeFromCart: async function(itemId) {
-        if (!this.isAuthenticated) {
-            return { success: false, requires_login: true };
-        }
-        
         try {
             const response = await fetch(`/api/cart/item/${itemId}/remove/`, {
                 method: 'POST',
@@ -288,12 +215,8 @@ const CartAPI = {
         }
     },
     
-    // Merge session cart to DB cart
+    // Merge session cart to DB cart (e.g. after cookie was set)
     mergeSessionCart: async function() {
-        if (!this.isAuthenticated) {
-            return { success: false };
-        }
-        
         // Get session cart from localStorage/sessionStorage
         const sessionCart = this.getSessionCart();
         

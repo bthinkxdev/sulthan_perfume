@@ -429,6 +429,12 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Email <span style="color: var(--text-muted); font-weight: 400;">(optional, for order confirmation)</span></label>
+                        <input type="email" class="form-input" id="email" name="email" placeholder="your@email.com">
+                        <div class="error-message" id="emailError">Please enter a valid email</div>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Address <span class="required">*</span></label>
                         <textarea class="form-input" id="address" name="address_line" rows="3" placeholder="House/Flat no, Building name, Street" required></textarea>
                         <div class="error-message" id="addressError">Please enter your address</div>
@@ -701,6 +707,7 @@
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
+            email: document.getElementById('email').value.trim() || undefined,
             address_line: document.getElementById('address').value.trim(),
             city: document.getElementById('city').value.trim(),
             district: document.getElementById('district').value.trim(),
@@ -837,6 +844,7 @@
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
+            email: document.getElementById('email').value.trim() || undefined,
             address_line: document.getElementById('address').value.trim(),
             city: document.getElementById('city').value.trim(),
             district: document.getElementById('district').value.trim(),

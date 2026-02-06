@@ -189,11 +189,11 @@
         transition: all 0.3s;
     }
 
-    /* Style all hero buttons the same - solid filled like Explore Collection */
+    /* Hero category/buttons use same brown as floating action icons (#8B5A3C / #6B4423) */
     .hero .hero-buttons .btn-primary,
     .hero .hero-buttons .btn-secondary,
     .hero .hero-cat-pill {
-        background: var(--primary);
+        background: linear-gradient(135deg, #8B5A3C 0%, #6B4423 100%);
         color: #fff;
         border: none;
         font-weight: 700;
@@ -201,14 +201,14 @@
         border-radius: 14px;
         font-size: 15px;
         letter-spacing: 0.8px;
-        box-shadow: 0 10px 30px rgba(30, 20, 14, 0.1);
+        box-shadow: 0 8px 24px rgba(139, 90, 60, 0.35), 0 4px 12px rgba(107, 68, 35, 0.25);
     }
 
-    /* Inactive state for category pills */
+    /* Inactive state for category pills - outline in same brown */
     .hero .hero-cat-pill:not(.active) {
         background: rgba(255, 255, 255, 0.9);
-        color: var(--primary);
-        border: 1px solid var(--primary);
+        color: #6B4423;
+        border: 1px solid #8B5A3C;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
@@ -217,13 +217,13 @@
     .hero .hero-buttons .btn-secondary:hover,
     .hero .hero-cat-pill:hover {
         transform: translateY(-2px);
-        box-shadow: 0 12px 35px rgba(30, 20, 14, 0.15);
+        box-shadow: 0 12px 32px rgba(139, 90, 60, 0.45), 0 6px 16px rgba(107, 68, 35, 0.35);
     }
 
     .hero .hero-cat-pill:not(.active):hover {
-        background: var(--primary);
+        background: linear-gradient(135deg, #8B5A3C 0%, #6B4423 100%);
         color: #fff;
-        border-color: var(--primary);
+        border-color: #8B5A3C;
     }
 
     .hero-product {
@@ -1226,16 +1226,7 @@
 
 {% block extra_js %}
 <script>
-    // Show OTP modal if user was redirected here for login
-    {% if show_login_modal %}
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof openOTPModal === 'function') {
-            openOTPModal('{{ next_url }}');
-        }
-    });
-    {% endif %}
-    
-    // Cart Management - Updated to use DB cart API
+    // Cart Management - guest cart via cookie
     async function addToCart(id, type, name, price, image, variantId = null, variantMl = null) {
         // Prepare item data
         const itemData = {
@@ -1253,9 +1244,6 @@
         
         if (result.success) {
             CartAPI.showNotification(`${name} added to cart!`);
-        } else if (result.requires_login) {
-            // Login modal will be shown by CartAPI
-            CartAPI.showNotification('Please login to add items to cart', 'error');
         } else {
             CartAPI.showNotification(result.error || 'Failed to add to cart', 'error');
         }

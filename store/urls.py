@@ -9,13 +9,9 @@ urlpatterns = [
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
     path('combo/<slug:slug>/', views.combo_detail, name='combo_detail'),
     path('order/<str:order_number>/', views.order_confirmation, name='order_confirmation'),
+    path('track-order/', views.track_order, name='track_order'),
     
-    # Authentication
-    path('auth/send-otp/', views.send_otp, name='send_otp'),
-    path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
-    path('auth/logout/', views.logout_view, name='logout'),
-    
-    # Cart (requires authentication)
+    # Cart (guest or user)
     path('cart/', views.cart, name='cart'),
     path('api/cart/', views.cart_api, name='cart_api'),
     path('api/cart/merge/', views.merge_cart, name='merge_cart'),
@@ -30,16 +26,6 @@ urlpatterns = [
     path('api/verify-cod-advance-payment/', views.verify_cod_advance_payment, name='verify_cod_advance_payment'),
     path('api/payment-failed/', views.payment_failed, name='payment_failed'),
     path('api/razorpay-webhook/', views.razorpay_webhook, name='razorpay_webhook'),
-    
-    # Account management (requires authentication)
-    path('account/orders/', views.my_orders, name='my_orders'),
-    path('account/order/<str:order_number>/', views.order_detail, name='order_detail'),
-    path('account/addresses/', views.my_addresses, name='my_addresses'),
-    path('api/address/add/', views.add_address, name='add_address'),
-    path('api/address/<uuid:address_id>/update/', views.update_address, name='update_address'),
-    path('api/address/<uuid:address_id>/delete/', views.delete_address, name='delete_address'),
-    path('account/profile/', views.my_profile, name='my_profile'),
-    path('api/profile/update/', views.update_profile, name='update_profile'),
     
     # Legal & Information pages
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),

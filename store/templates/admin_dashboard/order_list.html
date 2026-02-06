@@ -4,15 +4,15 @@
 {% block page_title %}Order Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <!-- Search and Filter Bar -->
     <div class="search-filter-bar">
         <form method="get" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <input type="text" name="search" class="form-control" 
                        placeholder="Search by order #, customer name, or phone..." value="{{ search_query }}">
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <select name="status" class="form-control">
                     <option value="">All Status</option>
                     {% for value, label in status_choices %}
@@ -22,7 +22,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <select name="payment_method" class="form-control">
                     <option value="">All Payment Methods</option>
                     {% for value, label in payment_method_choices %}
@@ -32,12 +32,12 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search"></i> Search
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <a href="?" class="btn btn-secondary w-100">
                     <i class="bi bi-arrow-clockwise"></i> Reset
                 </a>

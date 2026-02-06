@@ -1130,16 +1130,8 @@
         
         if (result.success) {
             showIOSNotification(`${quantity} × ${productData.name} added to cart!`, 'success');
-            // Reset quantity
             quantity = 1;
             updateQuantityDisplay();
-        } else if (result.requires_login) {
-            // Login modal will be shown by CartAPI
-            if (typeof openOTPModal === 'function') {
-                openOTPModal();
-            } else {
-                showIOSNotification('Please login to add items to cart', 'error');
-            }
         } else {
             showIOSNotification(result.error || 'Failed to add to cart', 'error');
         }
@@ -1162,13 +1154,6 @@
         
         if (result.success) {
             window.location.href = '{% url "store:cart" %}';
-        } else if (result.requires_login) {
-            // Show login modal with redirect to cart
-            if (typeof openOTPModal === 'function') {
-                openOTPModal('{% url "store:cart" %}');
-            } else {
-                showIOSNotification('Please login to continue', 'error');
-            }
         } else {
             showIOSNotification(result.error || 'Failed to add to cart', 'error');
         }

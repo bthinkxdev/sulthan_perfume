@@ -220,6 +220,16 @@
         margin-top: 24px;
         padding: 18px;
         font-size: 16px;
+        /* Same brown as floating icons (scroll-to-top, WhatsApp) */
+        background: linear-gradient(135deg, #8B5A3C 0%, #6B4423 100%) !important;
+        color: #fff !important;
+        border: none !important;
+        box-shadow: 0 8px 24px rgba(139, 90, 60, 0.35), 0 4px 12px rgba(107, 68, 35, 0.25);
+    }
+    .checkout-btn:hover {
+        background: linear-gradient(135deg, #9B6A4C 0%, #7B5433 100%) !important;
+        color: #fff !important;
+        box-shadow: 0 12px 32px rgba(139, 90, 60, 0.45), 0 6px 16px rgba(107, 68, 35, 0.35);
     }
 
     .continue-shopping {
@@ -323,21 +333,7 @@
     async function loadCart() {
         const cartContent = document.getElementById('cartContent');
         
-        // Check if user is authenticated
-        if (!CartAPI.isAuthenticated) {
-            const authenticated = await CartAPI.checkAuth();
-            if (!authenticated) {
-                // Show login modal
-                if (typeof openOTPModal === 'function') {
-                    openOTPModal('{% url "store:cart" %}');
-                } else {
-                    window.location.href = '{% url "store:home" %}';
-                }
-                return;
-            }
-        }
-        
-        // Load cart from server
+        // Load cart from server (guest cart via cookie)
         const cart = await CartAPI.loadCart();
         
         if (!cart || cart.length === 0) {
@@ -451,21 +447,14 @@
     
     // Load cart on page load
     document.addEventListener('DOMContentLoaded', async function() {
-        // Wait for CartAPI to initialize
         await CartAPI.init();
-        
-        // Try to merge session cart if user just logged in
-        if (CartAPI.isAuthenticated) {
-            const sessionCart = CartAPI.getSessionCart();
-            if (sessionCart && sessionCart.length > 0) {
-                console.log('Merging session cart with', sessionCart.length, 'items');
-                const result = await CartAPI.mergeSessionCart();
-                if (result && result.success) {
-                    console.log('Cart merged successfully');
-                }
+        const sessionCart = CartAPI.getSessionCart();
+        if (sessionCart && sessionCart.length > 0) {
+            const result = await CartAPI.mergeSessionCart();
+            if (result && result.success) {
+                // Merged session cart into guest cart
             }
         }
-        
         await loadCart();
     });
 

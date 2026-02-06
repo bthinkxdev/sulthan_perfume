@@ -4,9 +4,9 @@
 {% block page_title %}Confirm Delete{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-12 col-lg-6">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
                     <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirm Deletion</h5>
@@ -26,7 +26,7 @@
 
                     <form method="post">
                         {% csrf_token %}
-                        <div class="d-flex justify-content-between">
+                        <div class="admin-actions">
                             <a href="{% url 'admin_order_detail' order.pk %}" class="btn btn-secondary">
                                 <i class="bi bi-x"></i> Cancel
                             </a>

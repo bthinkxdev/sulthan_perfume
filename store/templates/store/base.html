@@ -469,6 +469,17 @@
             border-color: #e5d6ca;
         }
 
+        .footer-section .social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .footer-section .social-links .social-link {
+            margin-top: 0;
+        }
+
         .footer-bottom {
             text-align: center;
             margin-top: 36px;
@@ -791,6 +802,7 @@
                 <li><a href="{% url 'store:home' %}">Home</a></li>
                 <li><a href="{% url 'store:home' %}#products">Products</a></li>
                 <li><a href="{% url 'store:home' %}#combos">Combos</a></li>
+                <li><a href="{% url 'store:track_order' %}">Track Order</a></li>
                 {% if global_categories %}
                     {% for category in global_categories %}
                     <li><a href="{% url 'store:home' %}?category={{ category.slug }}#products">{{ category.name }}</a></li>
@@ -820,11 +832,7 @@
             <a href="{% url 'store:home' %}?category={{ category.slug }}#products" onclick="toggleMobileMenu(false)">{{ category.name }}</a>
             {% endfor %}
         {% endif %}
-        {% if user.is_authenticated %}
-            <a href="{% url 'store:my_orders' %}" onclick="toggleMobileMenu(false)">My Orders</a>
-            <a href="{% url 'store:my_profile' %}" onclick="toggleMobileMenu(false)">My Profile</a>
-            <a href="{% url 'store:logout' %}" onclick="toggleMobileMenu(false); return handleLogout(event)" style="color: #ef4444;">Logout</a>
-        {% endif %}
+        <a href="{% url 'store:track_order' %}" onclick="toggleMobileMenu(false)">Track Order</a>
         <a class="mobile-cart" href="{% url 'store:cart' %}" onclick="toggleMobileMenu(false)">
             <span>Cart</span>
             <span class="cart-count" id="cart-count-mobile">0</span>
@@ -903,13 +911,22 @@
 
             <div class="footer-section">
                 <h3>Follow Us</h3>
-                <a href="{{ site_config.instagram_url }}" target="_blank" class="social-link">
-                    <span>📷</span> Instagram
-                </a>
+                <div class="social-links">
+                    <a href="{{ site_config.instagram_url }}" target="_blank" class="social-link" rel="noopener noreferrer">
+                        <span>📷</span> Instagram
+                    </a>
+                    <a href="https://wa.me/919746028747?text=Hi%20Sulthan%20Fragrance!%20I'm%20interested%20in%20your%20perfumes." target="_blank" class="social-link" rel="noopener noreferrer">
+                        <span>💬</span> WhatsApp
+                    </a>
+                    <a href="https://www.facebook.com/share/16huSXxAji/" target="_blank" class="social-link" rel="noopener noreferrer">
+                        <span>👍</span> Facebook
+                    </a>
+                </div>
             </div>
 
             <div class="footer-section">
                 <h3>Legal & Information</h3>
+                <p><a href="{% url 'store:track_order' %}">Track Order</a></p>
                 <p><a href="{% url 'store:privacy_policy' %}">Privacy Policy</a></p>
                 <p><a href="{% url 'store:terms_conditions' %}">Terms and Conditions</a></p>
                 <p><a href="{% url 'store:cancellations_refunds' %}">Cancellations and Refunds</a></p>
@@ -943,19 +960,15 @@
             if (mobileCountEl) mobileCountEl.textContent = count || 0;
         }
 
-        // Update cart count from session storage (for guests)
+        // Update cart count from session storage (fallback if CartAPI not yet loaded)
         function updateCartCountFromStorage() {
-            if (typeof CartAPI !== 'undefined' && CartAPI.isAuthenticated) {
-                // Authenticated users - count is updated by CartAPI via events
-                return;
+            if (typeof CartAPI !== 'undefined' && CartAPI._initialized) {
+                return; // CartAPI will have set count from server
             }
-            
-            // Fallback to sessionStorage for guests
             const cart = JSON.parse(sessionStorage.getItem('cart') || '[]');
             const count = cart.reduce((sum, item) => sum + item.quantity, 0);
             const cartCountEl = document.getElementById('cart-count');
             const mobileCountEl = document.getElementById('cart-count-mobile');
-            
             if (cartCountEl) cartCountEl.textContent = count;
             if (mobileCountEl) mobileCountEl.textContent = count;
         }
@@ -963,51 +976,11 @@
         // Initialize cart count (CartAPI.init() will handle authenticated users)
         updateCartCountFromStorage();
 
-        // Listen for cart updates from CartAPI (no infinite loop!)
+        // Listen for cart updates from CartAPI
         window.addEventListener('cart-updated', updateCartCountFromEvent);
         
-        // Listen for storage changes (for guest carts)
+        // Listen for storage changes
         window.addEventListener('storage', updateCartCountFromStorage);
-        
-        // Logout function
-        async function handleLogout(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            
-            if (!confirm('Are you sure you want to logout?')) {
-                return false;
-            }
-            
-            try {
-                const response = await fetch('{% url "store:logout" %}', {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        // Clear cart count
-                        CartAPI.updateCartCount(0);
-                        // Redirect to home
-                        window.location.href = '{% url "store:home" %}';
-                    }
-                } else {
-                    // If AJAX fails, just redirect
-                    window.location.href = '{% url "store:logout" %}';
-                }
-            } catch (error) {
-                // If AJAX fails, just redirect
-                window.location.href = '{% url "store:logout" %}';
-            }
-            
-            return false;
-        }
         
         // Helper function to get CSRF token
         function getCookie(name) {
@@ -1103,9 +1076,6 @@
             }
         });
     </script>
-
-    <!-- OTP Login Modal -->
-    {% include 'store/otp_login_modal.html' %}
 
     <!-- Cart API -->
     <script src="{% static 'js/cart-api.js' %}"></script>

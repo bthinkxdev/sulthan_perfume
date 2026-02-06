@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.core.paginator import Paginator
 from .models import Product, ProductVariant, Combo, Order, OrderItem, Category
+from .utils import parse_uuid
 from .forms import (
     ProductForm,
     ProductVariantForm,
@@ -74,19 +75,14 @@ def category_create(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         description = request.POST.get('description', '')
-        display_order = request.POST.get('display_order', 0)
         is_active = request.POST.get('is_active') == 'on'
-        image = request.FILES.get('image')
         
         category = Category(
             name=name,
             description=description,
-            display_order=display_order,
+            display_order=0,  # default, hidden from form
             is_active=is_active,
         )
-        if image:
-            category.image = image
-        
         category.save()
         messages.success(request, f'Category "{category.name}" created successfully!')
         return redirect('admin_category_detail', pk=category.pk)
@@ -104,13 +100,8 @@ def category_edit(request, pk):
     if request.method == 'POST':
         category.name = request.POST.get('name')
         category.description = request.POST.get('description', '')
-        category.display_order = request.POST.get('display_order', 0)
+        # display_order left unchanged (hidden from form, default 0 on create)
         category.is_active = request.POST.get('is_active') == 'on'
-        
-        image = request.FILES.get('image')
-        if image:
-            category.image = image
-        
         category.save()
         messages.success(request, f'Category "{category.name}" updated successfully!')
         return redirect('admin_category_detail', pk=category.pk)
@@ -155,8 +146,8 @@ def category_delete(request, pk):
 
 # @staff_member_required
 def product_list(request):
-    """List all products with search and filter"""
-    products = Product.objects.all()
+    """List all products with search, category and status filter"""
+    products = Product.objects.all().select_related('category')
     
     # Search
     search_query = request.GET.get('search', '')
@@ -165,6 +156,12 @@ def product_list(request):
             Q(name__icontains=search_query) |
             Q(short_description__icontains=search_query)
         )
+    
+    # Filter by category (only if valid UUID)
+    category_filter = request.GET.get('category', '')
+    category_uuid = parse_uuid(category_filter)
+    if category_uuid:
+        products = products.filter(category_id=category_uuid)
     
     # Filter by status
     status_filter = request.GET.get('status', '')
@@ -180,10 +177,14 @@ def product_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    categories = Category.objects.filter(is_active=True).order_by('display_order', 'name')
+    
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
         'status_filter': status_filter,
+        'category_filter': category_filter,
+        'categories': categories,
     }
     return render(request, 'admin_dashboard/product_list.html', context)
 

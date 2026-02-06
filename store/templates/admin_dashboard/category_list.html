@@ -4,27 +4,27 @@
 {% block page_title %}Categories Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-0">
     <!-- Search and Filter Bar -->
     <div class="search-filter-bar">
         <form method="get" class="row g-3">
-            <div class="col-md-5">
+            <div class="col-12 col-md-5">
                 <input type="text" name="search" class="form-control" 
                        placeholder="Search categories..." value="{{ search_query }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-md-3">
                 <select name="status" class="form-control">
                     <option value="">All Status</option>
                     <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                     <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-search"></i> Search
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <a href="{% url 'admin_category_create' %}" class="btn btn-success w-100">
                     <i class="bi bi-plus-lg"></i> Add Category
                 </a>
@@ -39,7 +39,6 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Image</th>
                             <th>Name</th>
                             <th>Description</th>
                             <th>Products</th>
@@ -51,17 +50,6 @@
                     <tbody>
                         {% for category in page_obj %}
                         <tr>
-                            <td>
-                                {% if category.image %}
-                                <img src="{{ category.image.url }}" alt="{{ category.name }}" 
-                                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
-                                {% else %}
-                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center"
-                                     style="width: 60px; height: 60px; border-radius: 5px;">
-                                    <i class="bi bi-folder"></i>
-                                </div>
-                                {% endif %}
-                            </td>
                             <td>
                                 <strong>{{ category.name }}</strong><br>
                                 <small class="text-muted">{{ category.slug }}</small>
@@ -99,7 +87,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
+                            <td colspan="6" class="text-center text-muted py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
                                 <p class="mt-3">No categories found</p>
                                 <a href="{% url 'admin_category_create' %}" class="btn btn-success">
