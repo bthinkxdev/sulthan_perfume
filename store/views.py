@@ -85,10 +85,46 @@ def home(request):
     # Filter by category if specified
     category_slug = request.GET.get('category')
     category_filter = None
+    
+    # Group products by category for display
     if category_slug:
         category_filter = get_object_or_404(Category, slug=category_slug, is_active=True)
+        # If filtering by specific category, show only that category
+        products_by_category = [
+            {
+                'category': category_filter,
+                'products': Product.objects.filter(
+                    is_active=True, 
+                    category=category_filter
+                ).prefetch_related('variants')
+            }
+        ]
         products = Product.objects.filter(is_active=True, category=category_filter).prefetch_related('variants')
     else:
+        # Group all products by their categories
+        products_by_category = []
+        for category in categories:
+            category_products = Product.objects.filter(
+                is_active=True,
+                category=category
+            ).prefetch_related('variants')
+            if category_products.exists():
+                products_by_category.append({
+                    'category': category,
+                    'products': category_products
+                })
+        
+        # Also include products without a category (if any)
+        uncategorized_products = Product.objects.filter(
+            is_active=True,
+            category__isnull=True
+        ).prefetch_related('variants')
+        if uncategorized_products.exists():
+            products_by_category.append({
+                'category': None,
+                'products': uncategorized_products
+            })
+        
         products = Product.objects.filter(is_active=True).prefetch_related('variants')
     
     combos = Combo.objects.filter(is_active=True).prefetch_related(
@@ -101,6 +137,7 @@ def home(request):
     context = {
         'featured_product': featured_product,
         'products': products,
+        'products_by_category': products_by_category,
         'combos': combos,
         'categories': categories,
         'current_category': category_filter,

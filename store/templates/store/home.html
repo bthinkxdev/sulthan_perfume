@@ -292,6 +292,19 @@
         margin-bottom: 56px;
     }
 
+    /* Category section styling for grouped products */
+    .category-section {
+        margin-bottom: 60px;
+    }
+
+    .category-section:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .category-section .section-header {
+        margin-bottom: 40px;
+    }
+
     .section-title {
         font-family: var(--font-heading);
         font-size: 40px;
@@ -1110,37 +1123,61 @@
 <!-- Products Section -->
 <section class="section" id="products">
     <div class="container">
-        <div class="section-header">
-            <h2 class="section-title">Our Premium Collection</h2>
-            <p class="section-subtitle">Discover our curated selection of luxury fragrances, each crafted to perfection with the finest ingredients.</p>
-        </div>
+        {% if products_by_category %}
+            {% for category_group in products_by_category %}
+                <div class="category-section" style="margin-bottom: 60px;">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            Our Premium {% if category_group.category %}{{ category_group.category.name }} Collection{% endif %}
+                        </h2>
+                        {% if category_group.category %}
+                            <p class="section-subtitle">
+                                {% if category_group.category.description %}
+                                    {{ category_group.category.description }}
+                                {% else %}
+                                    Discover our curated selection of premium {{ category_group.category.name|lower }}, each crafted to perfection with the finest ingredients.
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <p class="section-subtitle">Discover our curated selection of luxury fragrances, each crafted to perfection with the finest ingredients.</p>
+                        {% endif %}
+                    </div>
 
-
-
-        <div class="products-grid">
-            {% for product in products %}
-            <div class="product-card fade-in" onclick="window.location.href='{% url 'store:product_detail' product.slug %}'">
-                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
-                <div class="product-info">
-                    {% comment %} <span class="product-origin">{{ product.get_origin_display }}</span> {% endcomment %}
-                    {% with first_variant=product.variants.all|first %}
-                        <div class="product-head">
-                            <h3 class="product-name">{{ product.name }}</h3>
-                            <span class="product-price">
-                                ₹{{ first_variant.price|default:product.price }}{% if first_variant and first_variant.display_quantity %} • {{ first_variant.display_quantity }}{% endif %}
-                            </span>
+                    <div class="products-grid">
+                        {% for product in category_group.products %}
+                        <div class="product-card fade-in" onclick="window.location.href='{% url 'store:product_detail' product.slug %}'">
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                            <div class="product-info">
+                                {% comment %} <span class="product-origin">{{ product.get_origin_display }}</span> {% endcomment %}
+                                {% with first_variant=product.variants.all|first %}
+                                    <div class="product-head">
+                                        <h3 class="product-name">{{ product.name }}</h3>
+                                        <span class="product-price">
+                                            ₹{{ first_variant.price|default:product.price }}{% if first_variant and first_variant.display_quantity %} • {{ first_variant.display_quantity }}{% endif %}
+                                        </span>
+                                    </div>
+                                    <p class="product-desc">{{ product.short_description }}</p>
+                                    <div class="product-footer">
+                                        <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart('{{ product.id }}', 'product', '{{ product.name|escapejs }}', '{{ first_variant.price|default:product.price }}', '{{ product.image.url }}', '{{ first_variant.id|default:'' }}', '{{ first_variant.ml|default:'' }}')">Add to Cart</button>
+                                    </div>
+                                {% endwith %}
+                            </div>
                         </div>
-                        <p class="product-desc">{{ product.short_description }}</p>
-                        <div class="product-footer">
-                            <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart('{{ product.id }}', 'product', '{{ product.name|escapejs }}', '{{ first_variant.price|default:product.price }}', '{{ product.image.url }}', '{{ first_variant.id|default:'' }}', '{{ first_variant.ml|default:'' }}')">Add to Cart</button>
-                        </div>
-                    {% endwith %}
+                        {% empty %}
+                        <p style="grid-column: 1 / -1; text-align: center; color: var(--medium-gray);">No products available in this category.</p>
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
-            {% empty %}
-            <p style="grid-column: 1 / -1; text-align: center; color: var(--medium-gray);">No products available at the moment.</p>
             {% endfor %}
-        </div>
+        {% else %}
+            <div class="section-header">
+                <h2 class="section-title">Our Premium Collection</h2>
+                <p class="section-subtitle">Discover our curated selection of luxury fragrances, each crafted to perfection with the finest ingredients.</p>
+            </div>
+            <div class="products-grid">
+                <p style="grid-column: 1 / -1; text-align: center; color: var(--medium-gray);">No products available at the moment.</p>
+            </div>
+        {% endif %}
     </div>
 </section>
 
