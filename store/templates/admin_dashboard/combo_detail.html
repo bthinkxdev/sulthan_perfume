@@ -133,7 +133,6 @@
                                     <th>Product Name</th>
                                     <th>Variant</th>
                                     <th>Origin</th>
-                                    <th>Fragrance Notes</th>
                                     <th>Price (Selected Variant)</th>
                                     <th>Status</th>
                                     <th>Action</th>
@@ -159,7 +158,6 @@
                                     </td>
                                     <td>{% if item.variant.display_quantity %}{{ item.variant.display_quantity }}{% elif item.variant.ml %}{{ item.variant.ml }} ml{% else %}-{% endif %}</td>
                                     <td>{% if item.product.origin %}{{ item.product.get_origin_display }}{% else %}-{% endif %}</td>
-                                    <td>{% if item.product.fragrance_notes %}{{ item.product.fragrance_notes|truncatewords:5 }}{% else %}-{% endif %}</td>
                                     <td>₹{{ item.variant.price }}</td>
                                     <td>
                                         {% if item.product.is_active %}

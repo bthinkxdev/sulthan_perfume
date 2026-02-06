@@ -967,15 +967,6 @@
                 <div class="highlights-grid">
                     <div class="highlight-item">
                         <div class="highlight-icon">
-                            <i class="fa-solid fa-spa"></i>
-                        </div>
-                        <div class="highlight-content">
-                            <div class="highlight-title">Fragrance Notes</div>
-                            <div class="highlight-desc">{% if product.fragrance_notes %}{{ product.fragrance_notes }}{% else %}Not specified{% endif %}</div>
-                        </div>
-                    </div>
-                    <div class="highlight-item">
-                        <div class="highlight-icon">
                             <i class="fa-solid fa-hourglass-half"></i>
                         </div>
                         <div class="highlight-content">
@@ -1006,11 +997,6 @@
                 </div>
             </div>
 
-            <!-- Description -->
-            <div class="description-card">
-                <h3 class="description-title"><i class="fa-solid fa-circle-info" style="margin-right: 8px;"></i>About This Fragrance</h3>
-                <p class="description-text">{{ product.full_description }}</p>
-            </div>
         </div>
     </div>
 </section>
@@ -1125,7 +1111,8 @@
 
     // Cart Functions
     async function addToCart() {
-        if (!selectedVariant) {
+        // If product has variants but none selected, show error
+        if (productData.variants.length > 0 && !selectedVariant) {
             showIOSNotification('Please select a variant', 'error');
             return;
         }
@@ -1134,7 +1121,7 @@
             id: productData.id,
             type: 'product',
             quantity: quantity,
-            variant_id: selectedVariant.id
+            variant_id: selectedVariant ? selectedVariant.id : null
         };
         
         const result = await CartAPI.addToCart(itemData);
@@ -1149,7 +1136,8 @@
     }
 
     async function buyNow() {
-        if (!selectedVariant) {
+        // If product has variants but none selected, show error
+        if (productData.variants.length > 0 && !selectedVariant) {
             showIOSNotification('Please select a variant', 'error');
             return;
         }
@@ -1158,7 +1146,7 @@
             id: productData.id,
             type: 'product',
             quantity: quantity,
-            variant_id: selectedVariant.id
+            variant_id: selectedVariant ? selectedVariant.id : null
         };
         
         const result = await CartAPI.addToCart(itemData);

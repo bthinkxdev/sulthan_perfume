@@ -844,16 +844,23 @@ def add_to_cart(request):
         with transaction.atomic():
             if item_type == 'product':
                 product = get_object_or_404(Product, id=parsed_id, is_active=True)
-                if not variant_id:
-                    variant = product.default_variant
-                    if not variant:
-                        return JsonResponse({'success': False, 'error': 'Product variant not found'}, status=404)
-                else:
+                variant = None
+                price = None
+                
+                if variant_id:
+                    # Use the specified variant
                     variant = get_object_or_404(ProductVariant, id=parse_uuid(variant_id), product=product, is_active=True)
+                    price = variant.price
+                else:
+                    # Check if product has variants
+                    variant = product.default_variant
+                    if variant:
+                        # Product has variants, use the default variant price
+                        price = variant.price
+                    else:
+                        # Product has no variants, use base price
+                        price = product.price
                 
-                price = variant.price
-                
-                # Check if item already exists
                 # Prepare quantity fields for cart item
                 variant_ml = None
                 variant_quantity_value = None
@@ -870,7 +877,7 @@ def add_to_cart(request):
                     cart=cart,
                     item_type='product',
                     product=product,
-                    variant=variant,
+                    variant=variant,  # Can be None if product has no variants
                     defaults={
                         'quantity': quantity,
                         'price_at_time': price,

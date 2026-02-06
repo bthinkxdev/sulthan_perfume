@@ -47,16 +47,6 @@
                                 {% endif %}
                             </div>
 
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.full_description.id_for_label }}" class="form-label">
-                                    Full Description <span class="text-danger">*</span>
-                                </label>
-                                {{ form.full_description }}
-                                {% if form.full_description.errors %}
-                                    <div class="text-danger small">{{ form.full_description.errors }}</div>
-                                {% endif %}
-                            </div>
-
                             <div class="col-12 col-md-6 mb-3">
                                 <label for="{{ form.origin.id_for_label }}" class="form-label">
                                     Origin <span class="text-muted">(Optional)</span>
@@ -64,16 +54,6 @@
                                 {{ form.origin }}
                                 {% if form.origin.errors %}
                                     <div class="text-danger small">{{ form.origin.errors }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="col-12 col-md-6 mb-3">
-                                <label for="{{ form.fragrance_notes.id_for_label }}" class="form-label">
-                                    Fragrance Notes <span class="text-muted">(Optional)</span>
-                                </label>
-                                {{ form.fragrance_notes }}
-                                {% if form.fragrance_notes.errors %}
-                                    <div class="text-danger small">{{ form.fragrance_notes.errors }}</div>
                                 {% endif %}
                             </div>
 
@@ -176,15 +156,6 @@
                                             {% endif %}
                                         </div>
                                         <div class="col-md-3 mb-3">
-                                            <label for="{{ vform.ml.id_for_label }}" class="form-label">
-                                                [Legacy] Size (ml)
-                                            </label>
-                                            {{ vform.ml }}
-                                            {% if vform.ml.errors %}
-                                                <div class="text-danger small">{{ vform.ml.errors }}</div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="col-md-3 mb-3">
                                             <label for="{{ vform.price.id_for_label }}" class="form-label">
                                                 Price (₹)
                                             </label>
@@ -233,18 +204,12 @@
                                         {{ variant_formset.empty_form.quantity_unit }}
                                     </div>
                                     <div class="col-md-3 mb-3">
-                                        <label for="{{ variant_formset.empty_form.ml.id_for_label }}" class="form-label">
-                                            [Legacy] Size (ml)
-                                        </label>
-                                        {{ variant_formset.empty_form.ml }}
-                                    </div>
-                                    <div class="col-md-4 mb-3">
                                         <label for="{{ variant_formset.empty_form.price.id_for_label }}" class="form-label">
                                             Price (₹)
                                         </label>
                                         {{ variant_formset.empty_form.price }}
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
                                         <div class="form-check mt-4">
                                             {{ variant_formset.empty_form.is_active }}
                                             <label class="form-check-label" for="{{ variant_formset.empty_form.is_active.id_for_label }}">

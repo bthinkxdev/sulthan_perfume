@@ -43,17 +43,6 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.ml.id_for_label }}" class="form-label">
-                                [Legacy] Size (ml)
-                            </label>
-                            {{ form.ml }}
-                            <small class="text-muted">Legacy field for backward compatibility</small>
-                            {% if form.ml.errors %}
-                                <div class="text-danger small">{{ form.ml.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
                             <label for="{{ form.price.id_for_label }}" class="form-label">
                                 Price (₹) <span class="text-danger">*</span>
                             </label>
