@@ -48,6 +48,33 @@ class ProductForm(forms.ModelForm):
         # Make origin optional
         self.fields['origin'].required = False
 
+    def clean_image(self):
+        """
+        Validate product image:
+        - Hard limit: 7 MB (reject anything larger)
+        - UI recommendation: keep under 5 MB
+        """
+        image = self.cleaned_data.get('image')
+        if not image:
+            return image
+
+        max_bytes = 7 * 1024 * 1024  # 7 MB hard limit
+
+        # Some storage backends might not provide size/content_type, so guard with getattr
+        size = getattr(image, 'size', None)
+        content_type = getattr(image, 'content_type', '')
+
+        if size is not None and size > max_bytes:
+            raise forms.ValidationError(
+                "Image is too large. Maximum allowed size is 7 MB. "
+                "Please upload an image under 5 MB for best performance."
+            )
+
+        if content_type and not content_type.startswith('image/'):
+            raise forms.ValidationError("Only image files are allowed.")
+
+        return image
+
 
 class ProductVariantForm(forms.ModelForm):
     class Meta:

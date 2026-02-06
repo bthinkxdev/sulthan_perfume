@@ -73,7 +73,9 @@
                                     Product Image <span class="text-danger">*</span>
                                 </label>
                                 {{ form.image }}
-                                <small class="text-muted d-block">Images only. Recommended size under 5 MB. Max allowed 6 MB.</small>
+                                <small class="text-muted d-block">
+                                    Images only. Recommended size up to 5 MB. Maximum allowed 7 MB.
+                                </small>
                                 <div class="text-danger small d-none" id="imageValidationMessage"></div>
                                 {% if product and product.image %}
                                     <div class="mt-2">
@@ -250,7 +252,7 @@
         const imageInput = document.getElementById('id_image');
         const formEl = imageInput ? imageInput.closest('form') : null;
         const imageMsg = document.getElementById('imageValidationMessage');
-        const MAX_BYTES = 6 * 1024 * 1024;
+        const MAX_BYTES = 7 * 1024 * 1024; // 7 MB hard limit (UI recommends <= 5 MB)
 
         if (!addBtn || !container || !totalFormsInput || !emptyFormWrapper) return;
 
@@ -282,7 +284,7 @@
 
             if (isTooLarge) {
                 if (imageMsg) {
-                    imageMsg.textContent = 'Image must be 6 MB or smaller. Please upload under 5 MB for best performance.';
+                    imageMsg.textContent = 'Image must be 7 MB or smaller. Please upload under 5 MB for best performance.';
                     imageMsg.classList.remove('d-none');
                 }
                 imageInput.value = '';
