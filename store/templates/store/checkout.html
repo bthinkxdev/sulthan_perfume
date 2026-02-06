@@ -227,8 +227,17 @@
         padding: 18px;
         font-size: 16px;
         position: relative;
+        /* Same brown as floating icons and other primary CTAs */
+        background: linear-gradient(135deg, #8B5A3C 0%, #6B4423 100%) !important;
+        color: #fff !important;
+        border: none !important;
+        box-shadow: 0 8px 24px rgba(139, 90, 60, 0.35), 0 4px 12px rgba(107, 68, 35, 0.25);
     }
-
+    .place-order-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #9B6A4C 0%, #7B5433 100%) !important;
+        color: #fff !important;
+        box-shadow: 0 12px 32px rgba(139, 90, 60, 0.45), 0 6px 16px rgba(107, 68, 35, 0.35);
+    }
     .place-order-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
