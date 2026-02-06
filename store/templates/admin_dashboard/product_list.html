@@ -83,7 +83,7 @@
                                 <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
-                            <td>{{ product.get_origin_display }}</td>
+                            <td>{% if product.origin %}{{ product.get_origin_display }}{% else %}-{% endif %}</td>
                             <td>₹{{ product.default_variant_price }}</td>
                             <td>
                                 <span class="badge bg-info">{{ product.variants.count }} variant(s)</span>

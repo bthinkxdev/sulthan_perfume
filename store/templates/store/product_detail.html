@@ -832,9 +832,11 @@
                         <i class="fa-solid fa-layer-group"></i>{{ product.category.name }}
                     </span>
                     {% endif %}
+                    {% if product.origin %}
                     <span class="ios-badge origin">
                         <i class="fa-solid fa-globe"></i>{{ product.get_origin_display }}
                     </span>
+                    {% endif %}
                 </div>
                 <h1 class="product-title">{{ product.name }}</h1>
                 <p class="product-short-desc">{{ product.short_description }}</p>
@@ -860,8 +862,8 @@
                 </div>
                 <div class="price-meta" id="variantMeta">
                     {% with default_variant=product.default_variant %}
-                        {% if default_variant %}
-                            {{ default_variant.ml }}ml • Inclusive of all taxes • Free Delivery
+                        {% if default_variant and default_variant.display_quantity %}
+                            {{ default_variant.display_quantity }} • Inclusive of all taxes • Free Delivery
                         {% else %}
                             Inclusive of all taxes • Free Delivery
                         {% endif %}
@@ -898,8 +900,8 @@
                 <label class="section-label"><i class="fa-solid fa-flask" style="margin-right: 6px;"></i>Select Size</label>
                 <div class="variant-options">
                     {% for variant in product.variants.all %}
-                        <button class="variant-btn {% if forloop.first %}active{% endif %}" data-variant-id="{{ variant.id }}" data-price="{{ variant.price }}" data-ml="{{ variant.ml }}">
-                            {{ variant.ml }}ml • ₹{{ variant.price }}
+                        <button class="variant-btn {% if forloop.first %}active{% endif %}" data-variant-id="{{ variant.id }}" data-price="{{ variant.price }}" data-quantity-value="{{ variant.quantity_value|default:variant.ml }}" data-quantity-unit="{{ variant.quantity_unit|default:'ml' }}">
+                            {% if variant.display_quantity %}{{ variant.display_quantity }}{% else %}Standard{% endif %} • ₹{{ variant.price }}
                         </button>
                     {% empty %}
                         <span class="variant-btn active">Standard Size</span>
@@ -969,7 +971,7 @@
                         </div>
                         <div class="highlight-content">
                             <div class="highlight-title">Fragrance Notes</div>
-                            <div class="highlight-desc">{{ product.fragrance_notes }}</div>
+                            <div class="highlight-desc">{% if product.fragrance_notes %}{{ product.fragrance_notes }}{% else %}Not specified{% endif %}</div>
                         </div>
                     </div>
                     <div class="highlight-item">
@@ -994,10 +996,12 @@
                         <div class="highlight-icon">
                             <i class="fa-solid fa-award"></i>
                         </div>
+                        {% if product.origin %}
                         <div class="highlight-content">
                             <div class="highlight-title">Authentic {{ product.get_origin_display }}</div>
                             <div class="highlight-desc">Imported directly from source</div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1026,8 +1030,8 @@
                 {% with related_variant=related.variants.all|first %}
                     <div class="related-price">
                         ₹{{ related_variant.price|default:related.price }}
-                        {% if related_variant %}
-                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;"> • {{ related_variant.ml }}ml</span>
+                        {% if related_variant and related_variant.display_quantity %}
+                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;"> • {{ related_variant.display_quantity }}</span>
                         {% endif %}
                     </div>
                 {% endwith %}
@@ -1049,7 +1053,14 @@
         image: '{{ product.image.url }}',
         variants: [
             {% for variant in product.variants.all %}
-                { id: '{{ variant.id }}', ml: {{ variant.ml }}, price: parseFloat('{{ variant.price }}') }{% if not forloop.last %},{% endif %}
+                { 
+                    id: '{{ variant.id }}', 
+                    quantity_value: {{ variant.quantity_value|default:variant.ml|default:"null" }}, 
+                    quantity_unit: '{{ variant.quantity_unit|default:"ml" }}',
+                    ml: {{ variant.ml|default:"null" }}, 
+                    price: parseFloat('{{ variant.price }}'),
+                    display_quantity: '{{ variant.display_quantity|default:"" }}'
+                }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ]
     };
@@ -1200,8 +1211,8 @@
         
         priceDisplay.textContent = `₹${priceValue}`;
         
-        meta.textContent = selectedVariant
-            ? `${selectedVariant.ml}ml • Inclusive of all taxes • Free Delivery`
+        meta.textContent = selectedVariant && selectedVariant.display_quantity
+            ? `${selectedVariant.display_quantity} • Inclusive of all taxes • Free Delivery`
             : 'Inclusive of all taxes • Free Delivery';
     }
 

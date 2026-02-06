@@ -178,8 +178,12 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if item.variant_ml %}
+                                        {% if item.variant_quantity_value and item.variant_quantity_unit %}
+                                            {{ item.variant_quantity_value }}{{ item.variant_quantity_unit }}
+                                        {% elif item.variant_ml %}
                                             {{ item.variant_ml }} ml
+                                        {% elif item.variant and item.variant.display_quantity %}
+                                            {{ item.variant.display_quantity }}
                                         {% else %}
                                             -
                                         {% endif %}

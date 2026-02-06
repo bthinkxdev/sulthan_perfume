@@ -21,11 +21,33 @@
                         {% csrf_token %}
                         
                         <div class="mb-3">
+                            <label for="{{ form.quantity_value.id_for_label }}" class="form-label">
+                                Quantity Value
+                            </label>
+                            {{ form.quantity_value }}
+                            <small class="text-muted">Enter the quantity value (e.g., 50, 100, 1.5)</small>
+                            {% if form.quantity_value.errors %}
+                                <div class="text-danger small">{{ form.quantity_value.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.quantity_unit.id_for_label }}" class="form-label">
+                                Quantity Unit
+                            </label>
+                            {{ form.quantity_unit }}
+                            <small class="text-muted">Select the unit (ml, kg, pcs, etc.)</small>
+                            {% if form.quantity_unit.errors %}
+                                <div class="text-danger small">{{ form.quantity_unit.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
                             <label for="{{ form.ml.id_for_label }}" class="form-label">
-                                Size (ml) <span class="text-danger">*</span>
+                                [Legacy] Size (ml)
                             </label>
                             {{ form.ml }}
-                            <small class="text-muted">Enter the size in milliliters (e.g., 30, 50, 100)</small>
+                            <small class="text-muted">Legacy field for backward compatibility</small>
                             {% if form.ml.errors %}
                                 <div class="text-danger small">{{ form.ml.errors }}</div>
                             {% endif %}

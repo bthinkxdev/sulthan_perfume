@@ -147,7 +147,7 @@
                     <td>
                         {% if item.item_type == 'product' %}
                             {{ item.product.name }}
-                            {% if item.variant %}({{ item.variant.ml }}ml){% endif %}
+                            {% if item.variant and item.variant.display_quantity %}({{ item.variant.display_quantity }}){% elif item.variant_ml %}({{ item.variant_ml }}ml){% endif %}
                         {% elif item.item_type == 'combo' %}
                             {{ item.combo.title }} (Combo)
                         {% endif %}

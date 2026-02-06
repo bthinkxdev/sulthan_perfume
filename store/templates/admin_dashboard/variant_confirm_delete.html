@@ -16,7 +16,7 @@
                     
                     <div class="alert alert-warning">
                         <strong>Product:</strong> {{ variant.product.name }}<br>
-                        <strong>Variant:</strong> {{ variant.ml }} ml - ₹{{ variant.price }}
+                        <strong>Variant:</strong> {% if variant.display_quantity %}{{ variant.display_quantity }}{% elif variant.ml %}{{ variant.ml }} ml{% else %}Standard{% endif %} - ₹{{ variant.price }}
                     </div>
 
                     <p class="text-danger">

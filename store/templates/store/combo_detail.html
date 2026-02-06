@@ -369,11 +369,11 @@
                 <div class="product-card">
                     <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="product-image">
                     <div class="product-info">
-                        <span class="product-origin">{{ item.product.get_origin_display }}</span>
+                        {% if item.product.origin %}<span class="product-origin">{{ item.product.get_origin_display }}</span>{% endif %}
                         <h3 class="product-name">{{ item.product.name }}</h3>
                         <p class="product-desc">{{ item.product.short_description }}</p>
                         <div class="product-individual-price">
-                            ₹{{ item.variant.price }} • {{ item.variant.ml }}ml
+                            ₹{{ item.variant.price }}{% if item.variant.display_quantity %} • {{ item.variant.display_quantity }}{% endif %}
                         </div>
                     </div>
                 </div>

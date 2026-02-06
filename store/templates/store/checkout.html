@@ -318,53 +318,44 @@
         position: relative;
         display: block;
         cursor: pointer;
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        padding: 20px;
-        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 10px 16px; /* ~50% reduced vertical padding */
+        background: #ffffff; /* keep base card clean / neutral */
         transition: var(--transition-smooth);
     }
     
-    .payment-option:hover {
+    /* Selected payment option - rich brown styling, no checkbox icon */
+    .payment-option.selected {
+        background: linear-gradient(135deg, #8B5A3C 0%, #6B4423 100%);
+        border-color: #6B4423;
+        box-shadow: 0 10px 26px rgba(139, 90, 60, 0.35), 0 4px 16px rgba(107, 68, 35, 0.25);
+        color: #fff;
+    }
+    
+    .payment-option.selected .payment-option-title {
+        color: #fff;
+    }
+    
+    .payment-option.selected .payment-option-desc {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .payment-option.selected .payment-option-icon {
+        background: rgba(0, 0, 0, 0.15);
+    }
+    
+    .payment-option:not(.selected):hover {
         border-color: var(--primary);
-        box-shadow: 0 4px 12px rgba(196, 111, 68, 0.1);
+        box-shadow: 0 6px 18px rgba(196, 111, 68, 0.16);
+        background: #fff7f1; /* very light warm tint on hover only */
     }
     
     .payment-option input[type="radio"] {
         position: absolute;
+        inset: 0;
         opacity: 0;
         cursor: pointer;
-    }
-    
-    .payment-option input[type="radio"]:checked ~ .payment-option-content {
-        border-color: var(--primary);
-    }
-    
-    .payment-option input[type="radio"]:checked ~ .payment-option-content::before {
-        content: '✓';
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 28px;
-        height: 28px;
-        background: var(--primary);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 16px;
-        animation: scaleIn 0.2s ease-out;
-    }
-    
-    @keyframes scaleIn {
-        from {
-            transform: scale(0);
-        }
-        to {
-            transform: scale(1);
-        }
     }
     
     .payment-option-content {
@@ -376,35 +367,36 @@
     }
     
     .payment-option-icon {
-        font-size: 32px;
-        width: 48px;
-        height: 48px;
+        font-size: 22px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--light-gray);
-        border-radius: 12px;
+        border-radius: 14px;
         flex-shrink: 0;
     }
     
     .payment-option-details {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
     }
     
     .payment-option-title {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
+        letter-spacing: 0.01em;
         color: var(--text-main);
-        margin-bottom: 4px;
     }
     
     .payment-option-desc {
         font-size: 13px;
+        line-height: 1.45;
         color: var(--text-muted);
-    }
-    
-    .payment-option input[type="radio"]:checked ~ .payment-option-content .payment-option-title {
-        color: var(--primary);
     }
 </style>
 {% endblock %}
@@ -438,12 +430,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Email <span style="color: var(--text-muted); font-weight: 400;">(optional, for order confirmation)</span></label>
-                        <input type="email" class="form-input" id="email" name="email" placeholder="your@email.com">
-                        <div class="error-message" id="emailError">Please enter a valid email</div>
-                    </div>
-
-                    <div class="form-group">
                         <label class="form-label">Address <span class="required">*</span></label>
                         <textarea class="form-input" id="address" name="address_line" rows="3" placeholder="House/Flat no, Building name, Street" required></textarea>
                         <div class="error-message" id="addressError">Please enter your address</div>
@@ -458,8 +444,24 @@
 
                         <div class="form-group">
                             <label class="form-label">District <span class="required">*</span></label>
-                            <input type="text" class="form-input" id="district" name="district" placeholder="District" required>
-                            <div class="error-message" id="districtError">Please enter district</div>
+                            <select class="form-input" id="district" name="district" required>
+                                <option value="">Select District</option>
+                                <option value="Thiruvananthapuram">Thiruvananthapuram</option>
+                                <option value="Kollam">Kollam</option>
+                                <option value="Pathanamthitta">Pathanamthitta</option>
+                                <option value="Alappuzha">Alappuzha</option>
+                                <option value="Kottayam">Kottayam</option>
+                                <option value="Idukki">Idukki</option>
+                                <option value="Ernakulam">Ernakulam</option>
+                                <option value="Thrissur">Thrissur</option>
+                                <option value="Palakkad">Palakkad</option>
+                                <option value="Malappuram">Malappuram</option>
+                                <option value="Kozhikode">Kozhikode</option>
+                                <option value="Wayanad">Wayanad</option>
+                                <option value="Kannur">Kannur</option>
+                                <option value="Kasaragod">Kasaragod</option>
+                            </select>
+                            <div class="error-message" id="districtError">Please select district</div>
                         </div>
                     </div>
 
@@ -542,7 +544,13 @@
             const imageUrl = item.product_image || item.combo_image || '';
             const name = item.product_name || item.combo_title || 'Item';
             const typeLabel = item.type === 'combo' ? 'Combo Offer' : 'Single Product';
-            const variantLabel = item.variant_ml ? ` • ${item.variant_ml}ml` : '';
+            // Support both new quantity system and legacy ml
+            let variantLabel = '';
+            if (item.variant_quantity_value && item.variant_quantity_unit) {
+                variantLabel = ` • ${item.variant_quantity_value}${item.variant_quantity_unit}`;
+            } else if (item.variant_ml) {
+                variantLabel = ` • ${item.variant_ml}ml`;
+            }
 
             return `
             <div class="summary-item">
@@ -618,10 +626,10 @@
             hideError('city', 'cityError');
         }
 
-        // District validation
+        // District validation (must select one of the Kerala districts)
         const district = document.getElementById('district').value.trim();
-        if (district.length < 2) {
-            showError('district', 'districtError', 'Please enter district');
+        if (!district) {
+            showError('district', 'districtError', 'Please select district');
             if (!firstErrorField) firstErrorField = 'district';
             isValid = false;
         } else {
@@ -716,7 +724,6 @@
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
-            email: document.getElementById('email').value.trim() || undefined,
             address_line: document.getElementById('address').value.trim(),
             city: document.getElementById('city').value.trim(),
             district: document.getElementById('district').value.trim(),
@@ -756,7 +763,8 @@
                 order_id: result.razorpay_order_id,
                 prefill: {
                     name: result.customer_name,
-                    email: result.customer_email,
+                    // Email is no longer collected in checkout; keep empty for Razorpay
+                    email: '',
                     contact: result.customer_phone
                 },
                 theme: {
@@ -853,7 +861,6 @@
         const orderData = {
             customer_name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('phone').value.trim(),
-            email: document.getElementById('email').value.trim() || undefined,
             address_line: document.getElementById('address').value.trim(),
             city: document.getElementById('city').value.trim(),
             district: document.getElementById('district').value.trim(),
@@ -927,7 +934,8 @@
                 order_id: result.razorpay_order_id,
                 prefill: {
                     name: result.customer_name,
-                    email: result.customer_email,
+                    // Email is no longer collected in checkout; keep empty for Razorpay
+                    email: '',
                     contact: result.customer_phone
                 },
                 theme: {
@@ -1030,6 +1038,29 @@
         }
     }
 
+    // Highlight selected payment method with brown button style
+    function initPaymentMethodSelection() {
+        const options = document.querySelectorAll('.payment-option input[name="payment_method"]');
+        function updateSelection() {
+            const labels = document.querySelectorAll('.payment-option');
+            labels.forEach(label => label.classList.remove('selected'));
+            const checked = document.querySelector('.payment-option input[name="payment_method"]:checked');
+            if (checked) {
+                const parentLabel = checked.closest('.payment-option');
+                if (parentLabel) {
+                    parentLabel.classList.add('selected');
+                }
+            }
+        }
+
+        options.forEach(input => {
+            input.addEventListener('change', updateSelection);
+        });
+
+        // Initial state: default online payment selected
+        updateSelection();
+    }
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -1045,8 +1076,9 @@
         return cookieValue;
     }
 
-    // Load summary on page load
+    // Load summary and init payment selection on page load
     loadOrderSummary();
+    initPaymentMethodSelection();
 
     // Add real-time validation
     document.getElementById('customerName').addEventListener('blur', () => {
@@ -1078,9 +1110,9 @@
         }
     });
 
-    document.getElementById('district').addEventListener('blur', () => {
+    document.getElementById('district').addEventListener('change', () => {
         const district = document.getElementById('district').value.trim();
-        if (district && district.length >= 2) {
+        if (district) {
             hideError('district', 'districtError');
         }
     });

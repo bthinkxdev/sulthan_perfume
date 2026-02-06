@@ -1118,7 +1118,7 @@
                         <div class="product-head">
                             <h3 class="product-name">{{ product.name }}</h3>
                             <span class="product-price">
-                                ₹{{ first_variant.price|default:product.price }}{% if first_variant %} • {{ first_variant.ml }}ml{% endif %}
+                                ₹{{ first_variant.price|default:product.price }}{% if first_variant and first_variant.display_quantity %} • {{ first_variant.display_quantity }}{% endif %}
                             </span>
                         </div>
                         <p class="product-desc">{{ product.short_description }}</p>

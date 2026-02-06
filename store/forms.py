@@ -33,7 +33,7 @@ class ProductForm(forms.ModelForm):
             }),
             'fragrance_notes': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'e.g., Vanilla, Jasmine, Musk'
+                'placeholder': 'Optional: e.g., Vanilla, Jasmine, Musk'
             }),
             'price': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -54,16 +54,28 @@ class ProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = Category.objects.filter(is_active=True)
+        # Make origin and fragrance_notes optional
+        self.fields['origin'].required = False
+        self.fields['fragrance_notes'].required = False
 
 
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ['ml', 'price', 'is_active']
+        fields = ['quantity_value', 'quantity_unit', 'ml', 'price', 'is_active']
         widgets = {
+            'quantity_value': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Quantity value (e.g., 50, 100, 1.5)',
+                'step': '0.01'
+            }),
+            'quantity_unit': forms.Select(attrs={
+                'class': 'form-control',
+                'placeholder': 'Select unit'
+            }),
             'ml': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Size in ml (e.g., 50, 100)'
+                'placeholder': '[Legacy] Size in ml (e.g., 50, 100)'
             }),
             'price': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -74,13 +86,40 @@ class ProductVariantForm(forms.ModelForm):
                 'class': 'form-check-input'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make quantity fields optional
+        self.fields['quantity_value'].required = False
+        self.fields['quantity_unit'].required = False
+        self.fields['ml'].required = False
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        quantity_value = cleaned_data.get('quantity_value')
+        quantity_unit = cleaned_data.get('quantity_unit')
+        ml = cleaned_data.get('ml')
+        
+        # If quantity_value is provided, quantity_unit must also be provided
+        if quantity_value and not quantity_unit:
+            raise forms.ValidationError("Quantity unit is required when quantity value is provided.")
+        
+        # If quantity_unit is provided, quantity_value must also be provided
+        if quantity_unit and not quantity_value:
+            raise forms.ValidationError("Quantity value is required when quantity unit is provided.")
+        
+        # At least one quantity system should be provided (new or legacy)
+        if not quantity_value and not ml:
+            raise forms.ValidationError("Either quantity (value + unit) or legacy ml must be provided.")
+        
+        return cleaned_data
 
 
 ProductVariantFormSet = inlineformset_factory(
     Product,
     ProductVariant,
     form=ProductVariantForm,
-    fields=['ml', 'price', 'is_active'],
+    fields=['quantity_value', 'quantity_unit', 'ml', 'price', 'is_active'],
     extra=1,
     can_delete=True,
     min_num=0,

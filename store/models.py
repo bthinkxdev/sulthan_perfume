@@ -13,6 +13,25 @@ import secrets
 from datetime import timedelta
 
 
+# Standardized list of Kerala districts for address/order capture
+KERALA_DISTRICT_CHOICES = [
+    ('Thiruvananthapuram', 'Thiruvananthapuram'),
+    ('Kollam', 'Kollam'),
+    ('Pathanamthitta', 'Pathanamthitta'),
+    ('Alappuzha', 'Alappuzha'),
+    ('Kottayam', 'Kottayam'),
+    ('Idukki', 'Idukki'),
+    ('Ernakulam', 'Ernakulam'),
+    ('Thrissur', 'Thrissur'),
+    ('Palakkad', 'Palakkad'),
+    ('Malappuram', 'Malappuram'),
+    ('Kozhikode', 'Kozhikode'),
+    ('Wayanad', 'Wayanad'),
+    ('Kannur', 'Kannur'),
+    ('Kasaragod', 'Kasaragod'),
+]
+
+
 class Category(models.Model):
     """Product category model (no image)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -63,8 +82,11 @@ class Product(models.Model):
     short_description = models.CharField(max_length=255)
     full_description = models.TextField()
 
-    origin = models.CharField(max_length=20, choices=ORIGIN_CHOICES)
-    fragrance_notes = models.CharField(max_length=255)
+    # Perfume-specific fields - now optional for category-agnostic support
+    origin = models.CharField(max_length=20, choices=ORIGIN_CHOICES, null=True, blank=True,
+                              help_text="Optional: Product origin (e.g., France, Arabic)")
+    fragrance_notes = models.CharField(max_length=255, null=True, blank=True,
+                                       help_text="Optional: Fragrance notes (e.g., Vanilla, Jasmine, Musk)")
 
     price = models.DecimalField(max_digits=10, decimal_places=2,
                                 validators=[MinValueValidator(0)])
@@ -105,9 +127,31 @@ class Product(models.Model):
 
 
 class ProductVariant(models.Model):
+    QUANTITY_UNIT_CHOICES = [
+        ('ml', 'Milliliters (ml)'),
+        ('l', 'Liters (l)'),
+        ('g', 'Grams (g)'),
+        ('kg', 'Kilograms (kg)'),
+        ('pcs', 'Pieces'),
+        ('pack', 'Pack'),
+        ('box', 'Box'),
+        ('unit', 'Unit'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, related_name='variants', on_delete=models.CASCADE)
-    ml = models.PositiveIntegerField(help_text="Size of the variant in ml")
+    
+    # New generic quantity system
+    quantity_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                         validators=[MinValueValidator(0)],
+                                         help_text="Optional: Quantity value (e.g., 50, 100, 1.5)")
+    quantity_unit = models.CharField(max_length=20, choices=QUANTITY_UNIT_CHOICES, null=True, blank=True,
+                                      help_text="Optional: Quantity unit (e.g., ml, kg, pcs)")
+    
+    # Legacy ml field - kept for backward compatibility, deprecated
+    ml = models.PositiveIntegerField(null=True, blank=True, 
+                                      help_text="[DEPRECATED] Legacy ml field. Use quantity_value + quantity_unit instead.")
+    
     price = models.DecimalField(max_digits=10, decimal_places=2,
                                 validators=[MinValueValidator(0)])
     is_active = models.BooleanField(default=True)
@@ -116,11 +160,38 @@ class ProductVariant(models.Model):
     class Meta:
         ordering = ['created_at']
         constraints = [
-            models.UniqueConstraint(fields=['product', 'ml'], name='unique_product_ml_variant')
+            # Unique constraint for variants with quantity
+            models.UniqueConstraint(
+                fields=['product', 'quantity_value', 'quantity_unit'],
+                condition=models.Q(quantity_value__isnull=False, quantity_unit__isnull=False),
+                name='unique_product_quantity_variant'
+            ),
+            # Legacy constraint for ml (backward compatibility)
+            models.UniqueConstraint(
+                fields=['product', 'ml'],
+                condition=models.Q(ml__isnull=False),
+                name='unique_product_ml_variant'
+            ),
         ]
 
     def __str__(self):
-        return f"{self.product.name} - {self.ml}ml"
+        if self.quantity_value and self.quantity_unit:
+            return f"{self.product.name} - {self.quantity_value}{self.quantity_unit}"
+        elif self.ml:
+            # Backward compatibility
+            return f"{self.product.name} - {self.ml}ml"
+        else:
+            return f"{self.product.name} - Standard"
+    
+    @property
+    def display_quantity(self):
+        """Return formatted quantity string for display"""
+        if self.quantity_value and self.quantity_unit:
+            return f"{self.quantity_value}{self.quantity_unit}"
+        elif self.ml:
+            # Backward compatibility
+            return f"{self.ml}ml"
+        return None
 
 
 class Combo(models.Model):
@@ -221,7 +292,8 @@ class ComboProduct(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.combo.title} - {self.product.name} ({self.variant.ml}ml)"
+        variant_display = self.variant.display_quantity if self.variant else "Standard"
+        return f"{self.combo.title} - {self.product.name} ({variant_display})"
 
 
 class Order(models.Model):
@@ -270,11 +342,17 @@ class Order(models.Model):
 
     customer_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
-    email = models.EmailField(blank=True, null=True, help_text="Optional, for order confirmation")
+    # Deprecated: kept nullable for backward compatibility. No longer used in checkout flow.
+    email = models.EmailField(blank=True, null=True, help_text="(Deprecated) Previously used for order confirmation")
 
     address_line = models.TextField()
     city = models.CharField(max_length=50)
-    district = models.CharField(max_length=50, default='Kasaragod')
+    district = models.CharField(
+        max_length=50,
+        choices=KERALA_DISTRICT_CHOICES,
+        default='Kasaragod',
+        help_text="Kerala district"
+    )
     pincode = models.CharField(max_length=10)
 
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='new')
@@ -329,7 +407,11 @@ class OrderItem(models.Model):
                               on_delete=models.SET_NULL)
     variant = models.ForeignKey(ProductVariant, null=True, blank=True,
                                 on_delete=models.SET_NULL)
+    # Legacy ml field - kept for backward compatibility
     variant_ml = models.PositiveIntegerField(null=True, blank=True)
+    # New generic quantity fields
+    variant_quantity_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    variant_quantity_unit = models.CharField(max_length=20, null=True, blank=True)
 
     quantity = models.PositiveIntegerField(default=1)
     price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
@@ -489,7 +571,12 @@ class Address(models.Model):
     phone = models.CharField(max_length=15)
     address_line = models.TextField()
     city = models.CharField(max_length=50)
-    district = models.CharField(max_length=50, default='Kasaragod')
+    district = models.CharField(
+        max_length=50,
+        choices=KERALA_DISTRICT_CHOICES,
+        default='Kasaragod',
+        help_text="Kerala district"
+    )
     pincode = models.CharField(max_length=10)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -586,7 +673,11 @@ class CartItem(models.Model):
     # Product fields
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.CASCADE)
     variant = models.ForeignKey(ProductVariant, null=True, blank=True, on_delete=models.CASCADE)
+    # Legacy ml field - kept for backward compatibility
     variant_ml = models.PositiveIntegerField(null=True, blank=True)
+    # New generic quantity fields
+    variant_quantity_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    variant_quantity_unit = models.CharField(max_length=20, null=True, blank=True)
     
     # Combo fields
     combo = models.ForeignKey(Combo, null=True, blank=True, on_delete=models.CASCADE)
@@ -626,5 +717,16 @@ class CartItem(models.Model):
     
     def __str__(self):
         if self.item_type == 'product':
-            return f"{self.product.name} ({self.variant.ml}ml) - Qty: {self.quantity}"
+            variant_display = None
+            if self.variant:
+                variant_display = self.variant.display_quantity
+            elif self.variant_quantity_value and self.variant_quantity_unit:
+                variant_display = f"{self.variant_quantity_value}{self.variant_quantity_unit}"
+            elif self.variant_ml:
+                variant_display = f"{self.variant_ml}ml"
+            
+            if variant_display:
+                return f"{self.product.name} ({variant_display}) - Qty: {self.quantity}"
+            else:
+                return f"{self.product.name} - Qty: {self.quantity}"
         return f"{self.combo.title} - Qty: {self.quantity}"

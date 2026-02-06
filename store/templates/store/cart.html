@@ -358,7 +358,13 @@
         const itemsHTML = cart.map((item, index) => {
             const imageUrl = item.product_image || item.combo_image || '';
             const name = item.product_name || item.combo_title || 'Item';
-            const variantLabel = item.variant_ml ? `${item.variant_ml}ml` : null;
+            // Support both new quantity system and legacy ml
+            let variantLabel = null;
+            if (item.variant_quantity_value && item.variant_quantity_unit) {
+                variantLabel = `${item.variant_quantity_value}${item.variant_quantity_unit}`;
+            } else if (item.variant_ml) {
+                variantLabel = `${item.variant_ml}ml`;
+            }
             const typeLabel = item.type === 'combo' ? 'Combo Offer' : `Single Product${variantLabel ? ' • ' + variantLabel : ''}`;
             const imageHTML = imageUrl
                 ? `<div class="item-image"><img src="${imageUrl}" alt="${name}" style="width:120px; height:120px; object-fit:cover; border-radius:12px;"></div>`

@@ -400,7 +400,7 @@
                                 {% endif %}
                             </h3>
                             {% if item.variant %}
-                                <p class="item-variant">{{ item.variant.ml }}ml</p>
+                                <p class="item-variant">{% if item.variant.display_quantity %}{{ item.variant.display_quantity }}{% elif item.variant_ml %}{{ item.variant_ml }}ml{% endif %}</p>
                             {% endif %}
                             <p class="item-price">₹{{ item.price_at_purchase }} × {{ item.quantity }} = ₹{{ item.total_price }}</p>
                         </div>

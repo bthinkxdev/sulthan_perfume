@@ -289,7 +289,8 @@ def variant_create(request, product_pk):
             variant = form.save(commit=False)
             variant.product = product
             variant.save()
-            messages.success(request, f'Variant {variant.ml}ml created successfully!')
+            display_qty = variant.display_quantity or (f'{variant.ml}ml' if variant.ml else 'Standard')
+            messages.success(request, f'Variant {display_qty} created successfully!')
             return redirect('admin_product_detail', pk=product.pk)
     else:
         form = ProductVariantForm()
@@ -310,7 +311,8 @@ def variant_edit(request, pk):
         form = ProductVariantForm(request.POST, instance=variant)
         if form.is_valid():
             variant = form.save()
-            messages.success(request, f'Variant {variant.ml}ml updated successfully!')
+            display_qty = variant.display_quantity or (f'{variant.ml}ml' if variant.ml else 'Standard')
+            messages.success(request, f'Variant {display_qty} updated successfully!')
             return redirect('admin_product_detail', pk=variant.product.pk)
     else:
         form = ProductVariantForm(instance=variant)
@@ -331,7 +333,8 @@ def variant_delete(request, pk):
     
     if request.method == 'POST':
         variant.delete()
-        messages.success(request, f'Variant {variant.ml}ml deleted successfully!')
+        display_qty = variant.display_quantity or (f'{variant.ml}ml' if variant.ml else 'Standard')
+        messages.success(request, f'Variant {display_qty} deleted successfully!')
         return redirect('admin_product_detail', pk=product.pk)
     
     return render(request, 'admin_dashboard/variant_confirm_delete.html', {
@@ -351,7 +354,7 @@ def _product_variant_map():
         mapping[str(product.id)] = [
             {
                 'id': str(variant.id),
-                'label': f"{variant.ml}ml - ₹{variant.price}"
+                'label': f"{variant.display_quantity or (f'{variant.ml}ml' if variant.ml else 'Standard')} - ₹{variant.price}"
             }
             for variant in product.variants.filter(is_active=True)
         ]

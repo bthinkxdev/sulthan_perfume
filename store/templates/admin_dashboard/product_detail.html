@@ -112,7 +112,7 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="mb-1">{{ variant.ml }} ml</h6>
+                                    <h6 class="mb-1">{% if variant.display_quantity %}{{ variant.display_quantity }}{% elif variant.ml %}{{ variant.ml }} ml{% else %}Standard{% endif %}</h6>
                                     <p class="mb-1"><strong>₹{{ variant.price }}</strong></p>
                                     {% if variant.is_active %}
                                         <span class="badge bg-success">Active</span>

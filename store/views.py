@@ -7,8 +7,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.db import transaction
 from .models import Product, Combo, Order, OrderItem, SiteConfig, ProductVariant, Cart, CartItem, Category
 from .utils import parse_uuid
@@ -224,19 +222,11 @@ def create_razorpay_order(request):
         if not cart or cart.items.count() == 0:
             return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
         
-        # Validate required fields
+        # Validate required fields (phone-only, no email)
         required_fields = ['customer_name', 'phone', 'address_line', 'city', 'district', 'pincode']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
-        
-        # Optional email validation
-        email = (data.get('email') or '').strip() or None
-        if email:
-            try:
-                validate_email(email)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid email format'}, status=400)
         
         # Calculate total from cart items (Razorpay requires amount in paise/cents)
         total_amount = float(cart.get_total())
@@ -252,7 +242,6 @@ def create_razorpay_order(request):
                 cart=cart,
                 customer_name=data['customer_name'],
                 phone=data['phone'],
-                email=email,
                 address_line=data['address_line'],
                 city=data['city'],
                 district=data['district'],
@@ -272,6 +261,8 @@ def create_razorpay_order(request):
                     combo=cart_item.combo,
                     variant=cart_item.variant,
                     variant_ml=cart_item.variant_ml,
+                    variant_quantity_value=cart_item.variant_quantity_value,
+                    variant_quantity_unit=cart_item.variant_quantity_unit,
                     quantity=cart_item.quantity,
                     price_at_purchase=cart_item.price_at_time
                 )
@@ -284,7 +275,6 @@ def create_razorpay_order(request):
             'notes': {
                 'order_id': str(order.id),
                 'customer_name': order.customer_name,
-                'email': email or ''
             }
         })
         
@@ -303,7 +293,8 @@ def create_razorpay_order(request):
             'order_id': str(order.id),
             'order_number': order.order_number,
             'customer_name': order.customer_name,
-            'customer_email': email or order.phone,
+            # Phone-only checkout; email is no longer collected from customer
+            'customer_email': '',
             'customer_phone': order.phone
         })
         
@@ -323,18 +314,11 @@ def create_cod_order(request):
         if not cart or cart.items.count() == 0:
             return JsonResponse({'success': False, 'error': 'Cart is empty'}, status=400)
         
-        # Validate required fields
+        # Validate required fields (phone-only, no email)
         required_fields = ['customer_name', 'phone', 'address_line', 'city', 'district', 'pincode']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({'success': False, 'error': f'{field} is required'}, status=400)
-        
-        email = (data.get('email') or '').strip() or None
-        if email:
-            try:
-                validate_email(email)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid email format'}, status=400)
         
         # Calculate total and COD amounts
         total_amount = float(cart.get_total())
@@ -361,7 +345,6 @@ def create_cod_order(request):
                 cart=cart,
                 customer_name=data['customer_name'],
                 phone=data['phone'],
-                email=email,
                 address_line=data['address_line'],
                 city=data['city'],
                 district=data['district'],
@@ -383,6 +366,8 @@ def create_cod_order(request):
                     combo=cart_item.combo,
                     variant=cart_item.variant,
                     variant_ml=cart_item.variant_ml,
+                    variant_quantity_value=cart_item.variant_quantity_value,
+                    variant_quantity_unit=cart_item.variant_quantity_unit,
                     quantity=cart_item.quantity,
                     price_at_purchase=cart_item.price_at_time
                 )
@@ -395,7 +380,6 @@ def create_cod_order(request):
             'notes': {
                 'order_id': str(order.id),
                 'customer_name': order.customer_name,
-                'email': email or '',
                 'payment_type': 'COD Advance Payment',
                 'balance_cod': cod_balance
             }
@@ -416,7 +400,8 @@ def create_cod_order(request):
             'order_id': str(order.id),
             'order_number': order.order_number,
             'customer_name': order.customer_name,
-            'customer_email': email or order.phone,
+            # Phone-only checkout; email is no longer collected from customer
+            'customer_email': '',
             'customer_phone': order.phone,
             'advance_payment': advance_payment,
             'cod_balance': cod_balance,
@@ -757,12 +742,26 @@ def get_cart(request):
             }
             
             if item.item_type == 'product':
+                variant_ml = None
+                variant_quantity_value = None
+                variant_quantity_unit = None
+                
+                if item.variant:
+                    # Use new quantity system if available, fall back to legacy ml
+                    if item.variant.quantity_value and item.variant.quantity_unit:
+                        variant_quantity_value = float(item.variant.quantity_value)
+                        variant_quantity_unit = item.variant.quantity_unit
+                    elif item.variant.ml:
+                        variant_ml = item.variant.ml
+                
                 item_data.update({
                     'product_id': str(item.product.id),
                     'product_name': item.product.name,
                     'product_image': item.product.image.url if item.product.image else '',
                     'variant_id': str(item.variant.id) if item.variant else None,
-                    'variant_ml': item.variant.ml if item.variant else None,
+                    'variant_ml': variant_ml,  # Legacy support
+                    'variant_quantity_value': variant_quantity_value,
+                    'variant_quantity_unit': variant_quantity_unit,
                 })
             elif item.item_type == 'combo':
                 item_data.update({
@@ -818,6 +817,18 @@ def add_to_cart(request):
                 price = variant.price
                 
                 # Check if item already exists
+                # Prepare quantity fields for cart item
+                variant_ml = None
+                variant_quantity_value = None
+                variant_quantity_unit = None
+                
+                if variant:
+                    if variant.quantity_value and variant.quantity_unit:
+                        variant_quantity_value = variant.quantity_value
+                        variant_quantity_unit = variant.quantity_unit
+                    elif variant.ml:
+                        variant_ml = variant.ml
+                
                 cart_item, created = CartItem.objects.get_or_create(
                     cart=cart,
                     item_type='product',
@@ -826,7 +837,9 @@ def add_to_cart(request):
                     defaults={
                         'quantity': quantity,
                         'price_at_time': price,
-                        'variant_ml': variant.ml
+                        'variant_ml': variant_ml,  # Legacy support
+                        'variant_quantity_value': variant_quantity_value,
+                        'variant_quantity_unit': variant_quantity_unit,
                     }
                 )
                 
@@ -955,6 +968,17 @@ def merge_cart(request):
                         
                         if variant:
                             price = variant.price
+                            # Prepare quantity fields for cart item
+                            variant_ml = None
+                            variant_quantity_value = None
+                            variant_quantity_unit = None
+                            
+                            if variant.quantity_value and variant.quantity_unit:
+                                variant_quantity_value = variant.quantity_value
+                                variant_quantity_unit = variant.quantity_unit
+                            elif variant.ml:
+                                variant_ml = variant.ml
+                            
                             cart_item, created = CartItem.objects.get_or_create(
                                 cart=cart,
                                 item_type='product',
@@ -963,7 +987,9 @@ def merge_cart(request):
                                 defaults={
                                     'quantity': quantity,
                                     'price_at_time': price,
-                                    'variant_ml': variant.ml
+                                    'variant_ml': variant_ml,  # Legacy support
+                                    'variant_quantity_value': variant_quantity_value,
+                                    'variant_quantity_unit': variant_quantity_unit,
                                 }
                             )
                             if not created:

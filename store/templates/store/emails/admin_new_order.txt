@@ -15,7 +15,7 @@ Address: {{ order.address_line }}, {{ order.city }}, {{ order.district }}, PIN: 
 ORDER ITEMS
 -----------
 {% for item in order.items.all %}
-- {% if item.item_type == 'product' %}{{ item.product.name }}{% if item.variant %} ({{ item.variant.ml }}ml){% endif %}{% elif item.item_type == 'combo' %}{{ item.combo.title }} (Combo){% endif %}
+- {% if item.item_type == 'product' %}{{ item.product.name }}{% if item.variant and item.variant.display_quantity %} ({{ item.variant.display_quantity }}){% elif item.variant_ml %} ({{ item.variant_ml }}ml){% endif %}{% elif item.item_type == 'combo' %}{{ item.combo.title }} (Combo){% endif %}
   Quantity: {{ item.quantity }}
   Price: ₹{{ item.price_at_purchase }}
   Subtotal: ₹{{ item.total_price }}
