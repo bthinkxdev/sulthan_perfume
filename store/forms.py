@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import inlineformset_factory
+from django.forms import inlineformset_factory, BaseInlineFormSet
 from .models import Product, ProductVariant, Combo, ComboProduct, Order, Category
 
 
@@ -208,14 +208,34 @@ class ComboProductForm(forms.ModelForm):
         return cleaned_data
 
 
+class BaseComboProductFormSet(BaseInlineFormSet):
+    """Require at least 2 products in a combo."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        # Count non-deleted forms that have a product selected
+        count = 0
+        for form in self.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                if form.cleaned_data.get('product'):
+                    count += 1
+        if count < 2:
+            raise forms.ValidationError(
+                'A combo must have at least 2 products. Add or select products for at least two items.'
+            )
+
+
 ComboProductFormSet = inlineformset_factory(
     Combo,
     ComboProduct,
     form=ComboProductForm,
+    formset=BaseComboProductFormSet,
     fields=['product', 'variant'],
     extra=2,
     can_delete=True,
-    min_num=1,
+    min_num=2,
     validate_min=True
 )
 

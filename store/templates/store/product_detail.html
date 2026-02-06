@@ -961,7 +961,9 @@
                 </button>
             </div>
 
-            <!-- Product Highlights -->
+            <!-- Product Highlights (only for perfume/perfumes category; slug may have random suffix e.g. perfume-a3b9c2) -->
+            {% if product.category %}
+            {% if product.category.slug|slice:":7" == "perfume" or product.category.slug|slice:":8" == "perfumes" %}
             <div class="highlights-card">
                 <label class="section-label"><i class="fa-solid fa-star" style="margin-right: 6px;"></i>Product Highlights</label>
                 <div class="highlights-grid">
@@ -983,19 +985,21 @@
                             <div class="highlight-desc">Safe for all skin types, alcohol-free formula</div>
                         </div>
                     </div>
+                    {% if product.origin %}
                     <div class="highlight-item">
                         <div class="highlight-icon">
                             <i class="fa-solid fa-award"></i>
                         </div>
-                        {% if product.origin %}
                         <div class="highlight-content">
                             <div class="highlight-title">Authentic {{ product.get_origin_display }}</div>
                             <div class="highlight-desc">Imported directly from source</div>
                         </div>
-                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
+            {% endif %}
 
         </div>
     </div>

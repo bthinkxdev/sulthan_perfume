@@ -77,15 +77,30 @@ def category_create(request):
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
         
-        category = Category(
-            name=name,
-            description=description,
-            display_order=0,  # default, hidden from form
-            is_active=is_active,
-        )
-        category.save()
-        messages.success(request, f'Category "{category.name}" created successfully!')
-        return redirect('admin_category_detail', pk=category.pk)
+        # Check if category with this name already exists
+        if Category.objects.filter(name=name).exists():
+            messages.error(request, f'Category with name "{name}" already exists. Please choose a different name.')
+            return render(request, 'admin_dashboard/category_form.html', {
+                'action': 'Create',
+                'form_data': {'name': name, 'description': description, 'is_active': is_active}
+            })
+        
+        try:
+            category = Category(
+                name=name,
+                description=description,
+                display_order=0,  # default, hidden from form
+                is_active=is_active,
+            )
+            category.save()
+            messages.success(request, f'Category "{category.name}" created successfully!')
+            return redirect('admin_category_detail', pk=category.pk)
+        except Exception as e:
+            messages.error(request, f'Error creating category: {str(e)}')
+            return render(request, 'admin_dashboard/category_form.html', {
+                'action': 'Create',
+                'form_data': {'name': name, 'description': description, 'is_active': is_active}
+            })
     
     return render(request, 'admin_dashboard/category_form.html', {
         'action': 'Create'
@@ -98,13 +113,34 @@ def category_edit(request, pk):
     category = get_object_or_404(Category, pk=pk)
     
     if request.method == 'POST':
-        category.name = request.POST.get('name')
-        category.description = request.POST.get('description', '')
-        # display_order left unchanged (hidden from form, default 0 on create)
-        category.is_active = request.POST.get('is_active') == 'on'
-        category.save()
-        messages.success(request, f'Category "{category.name}" updated successfully!')
-        return redirect('admin_category_detail', pk=category.pk)
+        new_name = request.POST.get('name')
+        description = request.POST.get('description', '')
+        is_active = request.POST.get('is_active') == 'on'
+        
+        # Check if another category with this name already exists (excluding current)
+        if Category.objects.filter(name=new_name).exclude(pk=pk).exists():
+            messages.error(request, f'Category with name "{new_name}" already exists. Please choose a different name.')
+            return render(request, 'admin_dashboard/category_form.html', {
+                'category': category,
+                'action': 'Edit',
+                'form_data': {'name': new_name, 'description': description, 'is_active': is_active}
+            })
+        
+        try:
+            category.name = new_name
+            category.description = description
+            # display_order left unchanged (hidden from form, default 0 on create)
+            category.is_active = is_active
+            category.save()
+            messages.success(request, f'Category "{category.name}" updated successfully!')
+            return redirect('admin_category_detail', pk=category.pk)
+        except Exception as e:
+            messages.error(request, f'Error updating category: {str(e)}')
+            return render(request, 'admin_dashboard/category_form.html', {
+                'category': category,
+                'action': 'Edit',
+                'form_data': {'name': new_name, 'description': description, 'is_active': is_active}
+            })
     
     return render(request, 'admin_dashboard/category_form.html', {
         'category': category,

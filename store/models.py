@@ -57,18 +57,31 @@ class Category(models.Model):
             base_slug = slugify(self.name)
             self.slug = base_slug
         
-        # Check for duplicate slugs and append random string if needed
+        # For new categories (no pk), always append random 6-char string for uniqueness
+        # For existing categories, only append if duplicate found
+        is_new = self.pk is None
         original_slug = self.slug
-        max_attempts = 10  # Safety limit to prevent infinite loops
-        attempt = 0
-        while Category.objects.filter(slug=self.slug).exclude(pk=self.pk).exists() and attempt < max_attempts:
-            attempt += 1
-            # Generate a short random string (4-6 chars) and append to slug
+        
+        if is_new:
+            # Always append random 6-character string for new categories
             random_suffix = secrets.token_urlsafe(4).lower().replace('_', '').replace('-', '')[:6]
             # Ensure total length doesn't exceed max_length (120)
             max_base_length = 120 - len(random_suffix) - 1  # -1 for the hyphen
             truncated_base = original_slug[:max_base_length] if len(original_slug) > max_base_length else original_slug
             self.slug = f"{truncated_base}-{random_suffix}"
+        
+        # Check for duplicate slugs and append random string if needed (fallback)
+        max_attempts = 10  # Safety limit to prevent infinite loops
+        attempt = 0
+        while Category.objects.filter(slug=self.slug).exclude(pk=self.pk).exists() and attempt < max_attempts:
+            attempt += 1
+            # Generate a random 6-character string and append to slug
+            random_suffix = secrets.token_urlsafe(4).lower().replace('_', '').replace('-', '')[:6]
+            # Ensure total length doesn't exceed max_length (120)
+            max_base_length = 120 - len(random_suffix) - 1  # -1 for the hyphen
+            truncated_base = original_slug[:max_base_length] if len(original_slug) > max_base_length else original_slug
+            self.slug = f"{truncated_base}-{random_suffix}"
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
